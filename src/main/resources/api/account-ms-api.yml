@@ -86,6 +86,12 @@ paths:
       responses:
         '200':
           description: Account updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '400':
+          description: Invalid request
     delete:
       tags:
         - Account
@@ -149,10 +155,6 @@ components:
         withdrawalDate:
           type: string
           format: date
-        authorizedSigners:
-          type: array
-          items:
-            type: string
     AccountResponse:
       type: object
       properties:
@@ -178,10 +180,6 @@ components:
         withdrawalDate:
           type: string
           format: date
-        authorizedSigners:
-          type: array
-          items:
-            type: string
         status:
           type: string
           enum: [ACTIVE, INACTIVE, BLOCKED]
