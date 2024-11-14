@@ -1,0 +1,207 @@
+openapi: 3.0.3
+info:
+  title: Account Service API
+  description: API para la gestion de cuentas bancarias
+  version: 1.0.0
+servers:
+  - url: http://localhost:8090/api/v1
+    description: Local development server
+paths:
+  /accounts:
+    post:
+      tags:
+        - Account
+      summary: Create a new account
+      operationId: createAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountRequest'
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '400':
+          description: Invalid request
+    get:
+      tags:
+        - Account
+      summary: Get all accounts
+      operationId: getAllAccounts
+      parameters:
+        - name: customerId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountResponse'
+  /accounts/{id}:
+    get:
+      tags:
+        - Account
+      summary: Get account by ID
+      operationId: getAccountById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+    put:
+      tags:
+        - Account
+      summary: Update account
+      operationId: updateAccount
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountRequest'
+      responses:
+        '200':
+          description: Account updated
+    delete:
+      tags:
+        - Account
+      summary: Delete account
+      operationId: deleteAccount
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Account deleted successfully
+        '404':
+          description: Account not found
+
+  /accounts/{id}/balance:
+    get:
+      tags:
+        - Account
+      summary: Get account balance
+      operationId: getAccountBalance
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+components:
+  schemas:
+    AccountRequest:
+      type: object
+      required:
+        - customerId
+        - accountType
+        - currency
+      properties:
+        customerId:
+          type: string
+        accountType:
+          type: string
+          enum: [SAVINGS, CHECKING, FIXED_TERM]
+        currency:
+          type: string
+        initialBalance:
+          type: number
+          format: double
+        maintenanceFee:
+          type: number
+          format: double
+        maxMonthlyMovements:
+          type: integer
+        withdrawalDate:
+          type: string
+          format: date
+        authorizedSigners:
+          type: array
+          items:
+            type: string
+    AccountResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        customerId:
+          type: string
+        accountType:
+          type: string
+          enum: [SAVINGS, CHECKING, FIXED_TERM]
+        accountNumber:
+          type: string
+        currency:
+          type: string
+        balance:
+          type: number
+        maintenanceFee:
+          type: number
+        maxMonthlyMovements:
+          type: integer
+        currentMonthMovements:
+          type: integer
+        withdrawalDate:
+          type: string
+          format: date
+        authorizedSigners:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, BLOCKED]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    BalanceResponse:
+      type: object
+      properties:
+        accountId:
+          type: string
+        balance:
+          type: number
+        availableBalance:
+          type: number
+        currency:
+          type: string
+        lastUpdateDate:
+          type: string
+          format: date-time
