@@ -1,9 +1,7 @@
 package com.bm_nttdata.account_ms.api;
 
-import com.bm_nttdata.account_ms.entity.Account;
 import com.bm_nttdata.account_ms.mapper.AccountMapper;
-import com.bm_nttdata.account_ms.model.AccountRequest;
-import com.bm_nttdata.account_ms.model.AccountResponse;
+import com.bm_nttdata.account_ms.model.Account;
 import com.bm_nttdata.account_ms.model.BalanceResponse;
 import com.bm_nttdata.account_ms.service.AccountService;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,7 +22,37 @@ public class AccountApiDelegateImpl implements AccountApiDelegate {
     private final AccountMapper accountMapper = Mappers.getMapper(AccountMapper.class);
 
     @Override
-    public ResponseEntity<AccountResponse> createAccount(AccountRequest accountRequest) {
+    public ResponseEntity<Account> createAccount(Account account) {
+        return AccountApiDelegate.super.createAccount(account);
+    }
+
+    @Override
+    public ResponseEntity<Void> deleteAccount(String id) {
+        return AccountApiDelegate.super.deleteAccount(id);
+    }
+
+    @Override
+    public ResponseEntity<BalanceResponse> getAccountBalance(String id) {
+        return AccountApiDelegate.super.getAccountBalance(id);
+    }
+
+    @Override
+    public ResponseEntity<Account> getAccountById(String id) {
+        return AccountApiDelegate.super.getAccountById(id);
+    }
+
+    @Override
+    public ResponseEntity<List<Account>> getAllAccounts(String accountType) {
+        return AccountApiDelegate.super.getAllAccounts(accountType);
+    }
+
+    @Override
+    public ResponseEntity<Account> updateAccount(String id, Account account) {
+        return AccountApiDelegate.super.updateAccount(id, account);
+    }
+
+    /*@Override
+    public ResponseEntity<Account> createAccount(Account accountRequest) {
         log.info("Creating account for customer: {}", accountRequest.getCustomerId());
         Account account = accountService.createAccount(accountRequest);
         return ResponseEntity.ok(accountMapper.toResponse(account));
@@ -67,5 +94,5 @@ public class AccountApiDelegateImpl implements AccountApiDelegate {
         log.info("Updating account: {}", id);
         Account account = accountService.updateAccount(id, accountRequest);
         return ResponseEntity.ok(accountMapper.toResponse(account));
-    }
+    }*/
 }

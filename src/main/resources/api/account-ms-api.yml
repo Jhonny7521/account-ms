@@ -8,6 +8,26 @@ servers:
     description: Local development server
 paths:
   /accounts:
+    get:
+      tags:
+        - Account
+      summary: Get all accounts
+      operationId: getAllAccounts
+      parameters:
+        - name: accountType
+          in: query
+          schema:
+            type: string
+            enum: [SAVINGS, CHECKING, FIXED_TERM]
+      responses:
+        '200':
+          description: List of accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
     post:
       tags:
         - Account
@@ -18,35 +38,17 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AccountRequest'
+              $ref: '#/components/schemas/Account'
       responses:
         '201':
           description: Account created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccountResponse'
+                $ref: '#/components/schemas/Account'
         '400':
           description: Invalid request
-    get:
-      tags:
-        - Account
-      summary: Get all accounts
-      operationId: getAllAccounts
-      parameters:
-        - name: customerId
-          in: query
-          schema:
-            type: string
-      responses:
-        '200':
-          description: List of accounts
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/AccountResponse'
+
   /accounts/{id}:
     get:
       tags:
@@ -65,7 +67,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccountResponse'
+                $ref: '#/components/schemas/Account'
     put:
       tags:
         - Account
@@ -82,16 +84,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AccountRequest'
+              $ref: '#/components/schemas/Account'
       responses:
         '200':
           description: Account updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccountResponse'
+                $ref: '#/components/schemas/Account'
         '400':
           description: Invalid request
+        '404':
+          description: Account not found
     delete:
       tags:
         - Account
@@ -130,65 +134,131 @@ paths:
                 $ref: '#/components/schemas/BalanceResponse'
 components:
   schemas:
-    AccountRequest:
+    Account:
       type: object
+      discriminator:
+        propertyName: accountType
+        mapping:
+          SAVINGS: '#/components/schemas/SavingsAccount'
+          CHECKING: '#/components/schemas/CheckingAccount'
+          FIXED_TERM: '#/components/schemas/FixedTermAccount'
       required:
-        - customerId
         - accountType
-        - currency
-      properties:
-        customerId:
-          type: string
-        accountType:
-          type: string
-          enum: [SAVINGS, CHECKING, FIXED_TERM]
-        currency:
-          type: string
-        initialBalance:
-          type: number
-          format: double
-        maintenanceFee:
-          type: number
-          format: double
-        maxMonthlyMovements:
-          type: integer
-        withdrawalDate:
-          type: string
-          format: date
-    AccountResponse:
-      type: object
+        - accountNumber
+        - customerId
+        - balance
+        - status
       properties:
         id:
-          type: string
-        customerId:
           type: string
         accountType:
           type: string
           enum: [SAVINGS, CHECKING, FIXED_TERM]
         accountNumber:
           type: string
-        currency:
+        customerId:
           type: string
         balance:
           type: number
-        maintenanceFee:
-          type: number
-        maxMonthlyMovements:
-          type: integer
-        currentMonthMovements:
-          type: integer
-        withdrawalDate:
-          type: string
-          format: date
+          format: double
         status:
           type: string
           enum: [ACTIVE, INACTIVE, BLOCKED]
+        accountHolders:
+          type: array
+          description: Lista de titulares de la cuenta (obligatorio al menos uno)
+          items:
+            $ref: '#/components/schemas/AccountHolder'
+        authorizedSigners:
+          type: array
+          description: Lista de firmantes autorizados (opcional)
+          items:
+            $ref: '#/components/schemas/AuthorizedSigner'
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
+
+    SavingsAccount:
+      allOf:
+        - $ref: '#/components/schemas/Account'
+        - type: object
+          properties:
+            monthlyMovementLimit:
+              type: integer
+            currentMonthMovements:
+              type: integer
+
+    CheckingAccount:
+      allOf:
+        - $ref: '#/components/schemas/Account'
+        - type: object
+          required:
+            - maintenanceFee
+          properties:
+            maintenanceFee:
+              type: number
+              format: double
+
+    FixedTermAccount:
+      allOf:
+        - $ref: '#/components/schemas/Account'
+        - type: object
+          required:
+            - withdrawalDay
+          properties:
+            withdrawalDay:
+              type: integer
+              minimum: 1
+              maximum: 31
+
+    AccountHolder:
+      type: object
+      required:
+        - documentNumber
+        - signatureType
+      properties:
+        documentNumber:
+          type: string
+          description: Número de documento del firmante
+        name:
+          type: string
+          description: Nombre completo del firmante
+        holderType:
+          type: string
+          enum: [PRIMARY, SECONDARY]
+          description: Tipo de titular (PRIMARY para titular principal, SECONDARY para cotitulares)
+        signatureType:
+          type: string
+          enum: [INDIVIDUAL, JOINT]
+          description: Tipo de firma requerida para operaciones
+
+    AuthorizedSigner:
+      type: object
+      required:
+        - documentNumber
+        - name
+        - signatureType
+      properties:
+        documentNumber:
+          type: string
+          description: Número de documento del firmante
+        name:
+          type: string
+          description: Nombre completo del firmante
+        position:
+          type: string
+          description: Cargo en la empresa (opcional)
+        signatureType:
+          type: string
+          enum: [INDIVIDUAL, JOINT]
+          description: Tipo de firma requerida para operaciones
+        transactionLimit:
+          type: number
+          description: Límite máximo por transacción (opcional)
+
     BalanceResponse:
       type: object
       properties:

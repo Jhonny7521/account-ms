@@ -1,9 +1,9 @@
 package com.bm_nttdata.account_ms.mapper;
-
+/*
 import com.bm_nttdata.account_ms.entity.Account;
 import com.bm_nttdata.account_ms.model.AccountRequest;
 import com.bm_nttdata.account_ms.model.AccountResponse;
-import com.bm_nttdata.account_ms.model.BalanceResponse;
+import com.bm_nttdata.account_ms.model.BalanceResponse;*/
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -18,7 +18,7 @@ import java.time.ZoneOffset;
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
 )
 public interface AccountMapper {
-
+/*
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "accountNumber", ignore = true)
     @Mapping(target = "status", constant = "ACTIVE")
@@ -54,5 +54,5 @@ public interface AccountMapper {
         }
         return offsetDateTime.toLocalDateTime();
     }
-
+*/
 }
