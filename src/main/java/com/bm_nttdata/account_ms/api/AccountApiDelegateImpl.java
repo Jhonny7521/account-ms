@@ -1,9 +1,9 @@
 package com.bm_nttdata.account_ms.api;
 
+import com.bm_nttdata.account_ms.entity.Account;
 import com.bm_nttdata.account_ms.mapper.AccountMapper;
-import com.bm_nttdata.account_ms.model.Account;
-import com.bm_nttdata.account_ms.model.BalanceResponse;
-import com.bm_nttdata.account_ms.service.AccountService;
+import com.bm_nttdata.account_ms.model.AccountDTO;
+import com.bm_nttdata.account_ms.service.impl.AccountServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.mapstruct.factory.Mappers;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,12 +18,32 @@ import java.util.stream.Collectors;
 public class AccountApiDelegateImpl implements AccountApiDelegate {
 
     @Autowired
-    private AccountService accountService;
+    private AccountServiceImpl accountService;
     private final AccountMapper accountMapper = Mappers.getMapper(AccountMapper.class);
 
     @Override
+    public ResponseEntity<List<AccountDTO>> getAllAccounts(String customerId, String accountType) {
+        log.info("Getting accounts for customer: {}", customerId);
+        //return AccountApiDelegate.super.getAllAccounts(accountType);
+        List<AccountDTO> accounts = accountService.getAllAccounts(customerId, accountType)
+                .stream()
+                .map(accountMapper::toResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(accounts);
+    }
+
+    @Override
+    public ResponseEntity<AccountDTO> getAccountById(String id) {
+        log.info("Getting account: {}", id);
+        Account account = accountService.getAccountById(id);
+        return ResponseEntity.ok(accountMapper.toResponse(account));
+    }
+
+ /*   @Override
     public ResponseEntity<Account> createAccount(Account account) {
-        return AccountApiDelegate.super.createAccount(account);
+        log.info("Creating account for customer: {}", account.getCustomerId());
+        Account account = accountService.createAccount(accountRequest);
+        return ResponseEntity.ok(accountMapper.toResponse(account));
     }
 
     @Override
@@ -39,11 +59,6 @@ public class AccountApiDelegateImpl implements AccountApiDelegate {
     @Override
     public ResponseEntity<Account> getAccountById(String id) {
         return AccountApiDelegate.super.getAccountById(id);
-    }
-
-    @Override
-    public ResponseEntity<List<Account>> getAllAccounts(String accountType) {
-        return AccountApiDelegate.super.getAllAccounts(accountType);
     }
 
     @Override

@@ -31,7 +31,7 @@ public class Account {
     private Double maintenanceFee;
     private Integer maxMonthlyMovements;
     private Integer currentMonthMovements;
-    private LocalDate withdrawalDate;
+    private Integer withdrawalDay;
     private List<AccountHolder> accountHolders;
     private List<AuthorizedSigner> authorizedSigners;
     private String status;

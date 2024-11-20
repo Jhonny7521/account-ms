@@ -14,6 +14,10 @@ paths:
       summary: Get all accounts
       operationId: getAllAccounts
       parameters:
+        - name: customerId
+          in: query
+          schema:
+            type: string
         - name: accountType
           in: query
           schema:
@@ -27,7 +31,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Account'
+                  $ref: '#/components/schemas/AccountDTO'
     post:
       tags:
         - Account
@@ -38,14 +42,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Account'
+              $ref: '#/components/schemas/AccountDTO'
       responses:
         '201':
           description: Account created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Account'
+                $ref: '#/components/schemas/AccountDTO'
         '400':
           description: Invalid request
 
@@ -67,7 +71,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Account'
+                $ref: '#/components/schemas/AccountDTO'
     put:
       tags:
         - Account
@@ -84,14 +88,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Account'
+              $ref: '#/components/schemas/AccountDTO'
       responses:
         '200':
           description: Account updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Account'
+                $ref: '#/components/schemas/AccountDTO'
         '400':
           description: Invalid request
         '404':
@@ -131,17 +135,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BalanceResponse'
+                $ref: '#/components/schemas/BalanceResponseDTO'
 components:
   schemas:
-    Account:
+    AccountDTO:
       type: object
       discriminator:
         propertyName: accountType
         mapping:
-          SAVINGS: '#/components/schemas/SavingsAccount'
-          CHECKING: '#/components/schemas/CheckingAccount'
-          FIXED_TERM: '#/components/schemas/FixedTermAccount'
+          SAVINGS: '#/components/schemas/SavingsAccountDTO'
+          CHECKING: '#/components/schemas/CheckingAccountDTO'
+          FIXED_TERM: '#/components/schemas/FixedTermAccountDTO'
       required:
         - accountType
         - accountNumber
@@ -168,12 +172,12 @@ components:
           type: array
           description: Lista de titulares de la cuenta (obligatorio al menos uno)
           items:
-            $ref: '#/components/schemas/AccountHolder'
+            $ref: '#/components/schemas/AccountHolderDTO'
         authorizedSigners:
           type: array
           description: Lista de firmantes autorizados (opcional)
           items:
-            $ref: '#/components/schemas/AuthorizedSigner'
+            $ref: '#/components/schemas/AuthorizedSignerDTO'
         createdAt:
           type: string
           format: date-time
@@ -181,9 +185,9 @@ components:
           type: string
           format: date-time
 
-    SavingsAccount:
+    SavingsAccountDTO:
       allOf:
-        - $ref: '#/components/schemas/Account'
+        - $ref: '#/components/schemas/AccountDTO'
         - type: object
           properties:
             monthlyMovementLimit:
@@ -191,9 +195,9 @@ components:
             currentMonthMovements:
               type: integer
 
-    CheckingAccount:
+    CheckingAccountDTO:
       allOf:
-        - $ref: '#/components/schemas/Account'
+        - $ref: '#/components/schemas/AccountDTO'
         - type: object
           required:
             - maintenanceFee
@@ -202,9 +206,9 @@ components:
               type: number
               format: double
 
-    FixedTermAccount:
+    FixedTermAccountDTO:
       allOf:
-        - $ref: '#/components/schemas/Account'
+        - $ref: '#/components/schemas/AccountDTO'
         - type: object
           required:
             - withdrawalDay
@@ -214,7 +218,7 @@ components:
               minimum: 1
               maximum: 31
 
-    AccountHolder:
+    AccountHolderDTO:
       type: object
       required:
         - documentNumber
@@ -235,7 +239,7 @@ components:
           enum: [INDIVIDUAL, JOINT]
           description: Tipo de firma requerida para operaciones
 
-    AuthorizedSigner:
+    AuthorizedSignerDTO:
       type: object
       required:
         - documentNumber
@@ -259,7 +263,7 @@ components:
           type: number
           description: Límite máximo por transacción (opcional)
 
-    BalanceResponse:
+    BalanceResponseDTO:
       type: object
       properties:
         accountId:
