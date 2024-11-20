@@ -1,9 +1,5 @@
 package com.bm_nttdata.account_ms.mapper;
-/*
-import com.bm_nttdata.account_ms.entity.Account;
-import com.bm_nttdata.account_ms.model.AccountRequest;
-import com.bm_nttdata.account_ms.model.AccountResponse;
-import com.bm_nttdata.account_ms.model.BalanceResponse;*/
+
 import com.bm_nttdata.account_ms.entity.Account;
 import com.bm_nttdata.account_ms.enums.HolderTypeEnum;
 import com.bm_nttdata.account_ms.enums.SignatureTypeEnum;
@@ -64,52 +60,17 @@ public interface AccountMapper {
         return AuthorizedSignerDTO.SignatureTypeEnum.valueOf(signatureType.name());
     }
 
-    @Named("toSavingsAccountDTO")
-    @Mapping(target = "accountType", constant = "SAVINGS")
+    @Mapping(target = "accountType", source = "accountType")
     @Mapping(target = "accountHolders", source = "accountHolders")
     @Mapping(target = "authorizedSigners", source = "authorizedSigners")
-    @Mapping(target = "monthlyMovementLimit", source = "maxMonthlyMovements")
-    SavingsAccountDTO toSavingsAccountDTO(Account account);
+    @Mapping(target = "monthlyMovementLimit", source = "monthlyMovementLimit")
+    AccountResponseDTO entityAccountToAccountResponseDTO(Account account);
 
-    @Named("toCheckingAccountDTO")
-    @Mapping(target = "accountType", constant = "CHECKING")
-    @Mapping(target = "accountHolders", source = "accountHolders")
-    @Mapping(target = "authorizedSigners", source = "authorizedSigners")
-    CheckingAccountDTO toCheckingAccountDTO(Account account);
+    Account accountRequestDtoToEntityAccount(AccountRequestDTO accountRequestDTO);
 
-    @Named("toFixedTermAccountDTO")
-    @Mapping(target = "accountType", constant = "FIXED_TERM")
-    @Mapping(target = "accountHolders", source = "accountHolders")
-    @Mapping(target = "authorizedSigners", source = "authorizedSigners")
-    @Mapping(target = "withdrawalDay", source = "withdrawalDay")
-    FixedTermAccountDTO toFixedTermAccountDTO(Account account);
+    List<AccountResponseDTO> entityAccountToAccountResponseDTOList(List<Account> accountList);
 
-    default AccountDTO toResponse(Account account){
-
-        if (account == null){
-            return null;
-        }
-
-        return switch (account.getAccountType()){
-            case SAVINGS -> toSavingsAccountDTO(account);
-            case CHECKING -> toCheckingAccountDTO(account);
-            case FIXED_TERM -> toFixedTermAccountDTO(account);
-        };
-    }
-
-    @SubclassMapping(source = SavingsAccountDTO.class, target = Account.class)
-    @Mapping(target = "accountType", constant = "SAVINGS")
-    @Mapping(target = "maxMonthlyMovements", source = "monthlyMovementLimit")
-    Account savingsAccountToEntityAccount(SavingsAccountDTO savingsAccountDTO);
-
-    @SubclassMapping(source = CheckingAccountDTO.class, target = Account.class)
-    @Mapping(target = "accountType", constant = "CHECKING")
-    Account checkingToEntity(CheckingAccountDTO checkingAccountDTO);
-
-    @SubclassMapping(source = FixedTermAccountDTO.class, target = Account.class)
-    @Mapping(target = "accountType", constant = "FIXED_TERM")
-    @Mapping(target = "withdrawalDay", source = "withdrawalDay")
-    Account fixedTermToEntity(FixedTermAccountDTO fixedTermAccountDTO);
+    List<Account> accountRequestDtoToEntityAccountList(List<AccountRequestDTO> accountRequestDTOList);
 
     // Método para manejar las conversiones de listas
     List<AccountHolderDTO> mapAccountHolders(List<AccountHolder> accountHolders);
@@ -130,13 +91,14 @@ public interface AccountMapper {
         }
         return offsetDateTime.toLocalDateTime();
     }
-    // Método After Mapping para ajustes posteriores al mapeo
-//    @AfterMapping
-//    default void afterMapping(@MappingTarget Account target) {
-//        if (target.getCreatedAt() == null) {
-//            target.setCreatedAt(LocalDateTime.now());
-//        }
-//        target.setUpdatedAt(LocalDateTime.now());
-//    }
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "accountNumber", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", expression = "java(java.time.LocalDateTime.now())")
+    void updateEntityAccountFromAccountRequestDto(AccountRequestDTO accountRequestDTO, @MappingTarget Account account);
 
+    @Mapping(target = "accountId", source = "id")
+    @Mapping(target = "availableBalance", source = "balance")
+    @Mapping(target = "lastUpdateDate", source = "updatedAt")
+    BalanceResponseDTO toBalanceResponse(Account account);
 }

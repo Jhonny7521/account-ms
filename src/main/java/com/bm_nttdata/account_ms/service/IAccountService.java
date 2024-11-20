@@ -1,7 +1,7 @@
 package com.bm_nttdata.account_ms.service;
 
 import com.bm_nttdata.account_ms.entity.Account;
-import com.bm_nttdata.account_ms.model.AccountDTO;
+import com.bm_nttdata.account_ms.model.AccountRequestDTO;
 
 import java.util.List;
 
@@ -11,9 +11,9 @@ public interface IAccountService {
 
     Account getAccountById(String id);
 
-    Account createAccount(AccountDTO accountRequest);
+    Account createAccount(AccountRequestDTO accountRequest);
 
-    Account updateAccount(String id, Account request);
+    Account updateAccount(String id, AccountRequestDTO accountRequest);
 
     void deleteAccount(String id);
 

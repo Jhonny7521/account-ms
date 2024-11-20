@@ -1,33 +1,35 @@
 package com.bm_nttdata.account_ms.service.impl;
-/*
+
 import com.bm_nttdata.account_ms.entity.Account;
-import com.bm_nttdata.account_ms.exception.AccountNotFoundException;
-import com.bm_nttdata.account_ms.exception.BusinessRuleException;
+import com.bm_nttdata.account_ms.exception.*;
 import com.bm_nttdata.account_ms.mapper.AccountMapper;
-import com.bm_nttdata.account_ms.model.AccountRequest;
+import com.bm_nttdata.account_ms.model.AccountRequestDTO;
+import com.bm_nttdata.account_ms.model.AccountResponseDTO;
 import com.bm_nttdata.account_ms.repository.AccountRepository;
-import com.bm_nttdata.account_ms.util.AccountNumberGenerator;*/
+import com.bm_nttdata.account_ms.util.AccountNumberGenerator;
 import com.bm_nttdata.account_ms.DTO.CustomerDTO;
 import com.bm_nttdata.account_ms.client.CustomerClient;
 import com.bm_nttdata.account_ms.entity.Account;
 import com.bm_nttdata.account_ms.exception.AccountNotFoundException;
 import com.bm_nttdata.account_ms.exception.BusinessRuleException;
 import com.bm_nttdata.account_ms.mapper.AccountMapper;
-import com.bm_nttdata.account_ms.model.AccountDTO;
-import com.bm_nttdata.account_ms.model.SavingsAccountDTO;
 import com.bm_nttdata.account_ms.repository.AccountRepository;
 import com.bm_nttdata.account_ms.service.IAccountService;
+import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.mapstruct.factory.Mappers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 
 @Slf4j
+@Transactional
 @Service
 public class AccountServiceImpl implements IAccountService {
 
@@ -37,8 +39,16 @@ public class AccountServiceImpl implements IAccountService {
     private AccountMapper accountMapper = Mappers.getMapper(AccountMapper.class);
 
     @Autowired
+    private AccountNumberGenerator accountNumberGenerator;
+    @Autowired
     private CustomerClient customerClient;
 
+    /**
+     *  Retorna todas las cuentas bancarias de un cliente
+     * @param customerId
+     * @param accountType
+     * @return
+     */
     @Override
     public List<Account> getAllAccounts(String customerId, String accountType) {
 
@@ -55,6 +65,11 @@ public class AccountServiceImpl implements IAccountService {
         return accountList;
     }
 
+    /**
+     * Retorna una cuenta bancaria obtenida por el id
+     * @param id
+     * @return
+     */
     @Override
     public Account getAccountById(String id) {
         return accountRepository.findById(id)
@@ -62,144 +77,188 @@ public class AccountServiceImpl implements IAccountService {
 
     }
 
+    /**
+     * Crea una nueva cuenta bancaria en base a las reglas del negocio
+     * @param accountRequest
+     * @return
+     */
     @Override
-    public Account createAccount(AccountDTO accountRequest) {
+    public Account createAccount(AccountRequestDTO accountRequest) {
 
-        CustomerDTO customerDTO = customerClient.getCustomerById(accountRequest.getCustomerId());
+        CustomerDTO customerDTO = new CustomerDTO();
+
+        try{
+            customerDTO = customerClient.getCustomerById(accountRequest.getCustomerId());
+
+        } catch (FeignException e){
+            log.error("Error calling customer service: {}", e.getMessage());
+            throw new ServiceException("Error retrieving customer information: " + e.getMessage());
+        }
 
         validateAccountCreation(customerDTO, accountRequest);
+        Account account = initializeAccountByType(accountMapper.accountRequestDtoToEntityAccount(accountRequest));
 
-        return null;
+        try{
+            return accountRepository.save(account);
+        }catch (Exception e) {
+            log.error("Unexpected error while saving account: {}", e.getMessage());
+            throw new ServiceException("Unexpected error creating account");
+        }
     }
 
+    /**
+     * Actualiza datos globales de una cuenta bancaria
+     * @param id
+     * @param request
+     * @return
+     */
     @Override
-    public Account updateAccount(String id, Account request) {
-        return null;
+    public Account updateAccount(String id, AccountRequestDTO request) {
+
+        Account account = getAccountById(id);
+        try{
+            accountMapper.updateEntityAccountFromAccountRequestDto(request, account);
+            return accountRepository.save(account);
+        }catch (Exception e){
+            log.error("Unexpected error while updating account {}: {}", id, e.getMessage());
+            throw new ServiceException("Unexpected error updating account");
+        }
     }
 
+    /**
+     * Elimina una cuenta bancaria que no tenga saldo
+     * @param id
+     */
     @Override
     public void deleteAccount(String id) {
 
+        Account account = getAccountById(id);
+        validateAccountDeletion(account);
+
+        try {
+            accountRepository.delete(account);
+        } catch (Exception e) {
+            log.error("Error deleting account {}: {}", id, e.getMessage());
+            throw new ServiceException("Error deleting account: " + e.getMessage());
+        }
+
     }
 
-    private void validateAccountCreation(CustomerDTO customerDTO, AccountDTO accountDTO) {
+    /**
+     * Valida las reglas del negocio para creacion de cuenta bancaria en base al tipo de cliente
+     * @param customerDTO
+     * @param accountRequestDTO
+     */
+    private void validateAccountCreation(CustomerDTO customerDTO, AccountRequestDTO accountRequestDTO) {
 
         if (customerDTO.getCustomerType().equals("PERSONAL")){
-            long count = accountRepository.countByCustomerIdAndAccountType(customerDTO.getId(), accountDTO.getAccountType().toString());
+            long count = accountRepository.countByCustomerIdAndAccountType(customerDTO.getId(), accountRequestDTO.getAccountType().toString());
             if (count > 0) {
                 throw new BusinessRuleException("Customer already has a " +
-                        accountDTO.getAccountType().toString() + " account");
+                        accountRequestDTO.getAccountType().toString() + " account");
             }
 
-            if (accountDTO.getAccountHolders().size() > 1 || accountDTO.getAuthorizedSigners().size() > 1 ){
+            if (accountRequestDTO.getAccountHolders().size() > 1 || accountRequestDTO.getAuthorizedSigners().size() > 1 ){
                 throw new BusinessRuleException("A personal account shouldn't have account holder or aothorized signers");
             }
 
         }
         else {
-            if ("SAVINGS".equals(accountDTO.getAccountType()) || "FIXED_TERM".equals(accountDTO.getAccountType())) {
+            if ("SAVINGS".equals(accountRequestDTO.getAccountType()) || "FIXED_TERM".equals(accountRequestDTO.getAccountType())) {
                 throw new BusinessRuleException("Business customer can't have SAVINGS or FIXED_TERM accounts");
             }
 
-            if (accountDTO.getAccountHolders().size() == 0){
+            if (accountRequestDTO.getAccountHolders().size() == 0){
                 throw new BusinessRuleException("A business account must have at least one account holder");
             }
 
         }
 
-        if (accountDTO.getAccountType().equals("SAVINGS")){
-            if (accountDTO instanceof SavingsAccountDTO){
-
-                SavingsAccountDTO savingsAccountDTO = (SavingsAccountDTO) accountDTO;
-            }
-        }
-
     }
 
-    private String translateAccountType(String accountType){
+    /**
+     * Establece las atributos necesarios segun el tipo de cuenta bancaria a crear
+     * @param account
+     * @return
+     */
+    private Account initializeAccountByType(Account account){
 
-        switch (accountType){
+        switch (account.getAccountType().getValue()) {
             case "SAVINGS":
-                return "de Ahorros";
+                account = setupSavingsAccount(account);
+                break;
             case "CHECKING":
-                return "Corriente";
+                account = setupCheckingAccount(account);
+                break;
             case "FIXED_TERM":
-                return "a Plazo fijo";
+                account = setupFixedTermAccount(account);
+                break;
             default:
-                return "";
+                throw new IllegalArgumentException("Tipo de cuenta no soportado: " + account.getAccountType().getValue());
         }
-    }
-/*
-    @Autowired
-    private AccountRepository accountRepository;
-    private AccountMapper accountMapper = Mappers.getMapper(AccountMapper.class);
 
-    @Autowired
-    private AccountNumberGenerator accountNumberGenerator;
-
-    public Account createAccount(AccountRequest request) {
-        validateAccountCreation(request);
-
-        Account account = accountMapper.toEntity(request);
-        account.setAccountNumber(accountNumberGenerator.generateAccountNumber());
-
-        return accountRepository.save(account);
-    }
-
-    public Account getAccountById(String id) {
-        return accountRepository.findById(id)
-                .orElseThrow(() -> new AccountNotFoundException("Account not found with id: " + id));
-    }
-
-    public List<Account> getAllAccounts(String customerId) {
-        return customerId != null ?
-                accountRepository.findByCustomerId(customerId) :
-                accountRepository.findAll();
-    }
-
-    public Account updateAccount(String id, AccountRequest request) {
-        Account account = getAccountById(id);
-        accountMapper.updateEntity(request, account);
-        return accountRepository.save(account);
-    }
-
-    public void deleteAccount(String id) {
-        Account account = getAccountById(id);
-        validateAccountDeletion(account);
-        accountRepository.delete(account);
-    }
-
-    private void validateAccountCreation(AccountRequest request) {
-
-
-        if ("SAVINGS".equals(request.getAccountType()) || "FIXED_TERM".equals(request.getAccountType())) {
-            long count = accountRepository.countByCustomerIdAndAccountType(
-                    request.getCustomerId(), request.getAccountType().toString());
-            if (count > 0) {
-                throw new BusinessRuleException("Customer already has a " +
-                        translateAccountType(request.getAccountType().toString()) + " account");
-            }
+        // Valores comunes para todos los tipos de cuenta
+        try {
+            account.setAccountNumber(accountNumberGenerator.generateAccountNumber());
+        } catch (Exception e) {
+            log.error("Error generating account number: {}", e.getMessage());
+            throw new ServiceException("Error generating account number");
         }
+        account.setStatus("ACTIVE");
+        account.setCurrentMonthMovements(0);
+        account.setCreatedAt(LocalDateTime.now());
+        account.setUpdatedAt(LocalDateTime.now());
+
+        return account;
     }
 
-    private void validateAccountDeletion(Account account) {
+    /**
+     * Establece los atributos especificos para una cuenta de ahorro
+     * @param account
+     * @return
+     */
+    private Account setupSavingsAccount(Account account) {
+        account.setMaintenanceFee(0.0);
+        account.setMonthlyMovementLimit(8);
+        account.setBalance(0.0);
+        account.setWithdrawalDay(0);
+        return account;
+    }
+
+    /**
+     * Establece los atributos especificos para una cuenta corriente
+     * @param account
+     * @return
+     */
+    private Account setupCheckingAccount(Account account) {
+        if (account.getMaintenanceFee() == null) account.setMaintenanceFee(10.0);
+        account.setMonthlyMovementLimit(0);
+        account.setBalance(0.0);
+        account.setWithdrawalDay(0);
+        return account;
+    }
+
+    /**
+     * Establece los atributos especificos para una cuenta a plazo fijo
+     * @param account
+     * @return
+     */
+    private Account setupFixedTermAccount(Account account) {
+        account.setMaintenanceFee(0.0);
+        account.setMonthlyMovementLimit(0);
+        account.setBalance(0.0);
+        if (account.getWithdrawalDay() != null)  account.setWithdrawalDay(5);
+        return account;
+    }
+
+    /**
+     * Valida que la cuenta bancaria no tenga saldo para la eliminacion
+     * @param account
+     */
+    private void validateAccountDeletion(Account account){
         if (account.getBalance() > 0) {
-            throw new BusinessRuleException("No se puede eliminar una cuenta con saldo positivo");
+            throw new BusinessRuleException("An account with a balance can't be deleted.");
         }
-
     }
 
-    private String translateAccountType(String accountType){
-
-        switch (accountType){
-            case "SAVINGS":
-                return "de Ahorros";
-            case "CHECKING":
-                return "Corriente";
-            case "FIXED_TERM":
-                return "a Plazo fijo";
-            default:
-                return "";
-        }
-    }*/
 }
