@@ -53,7 +53,7 @@ public class AccountServiceImpl implements IAccountService {
     public List<Account> getAllAccounts(String customerId, String accountType) {
 
         if (customerId == null) {
-            throw new BusinessRuleException("CustomerId is required");
+            throw new ApiInvalidRequestException("CustomerId is required");
         }
 
         List<Account> accountList = Stream.of(accountType)
@@ -158,13 +158,13 @@ public class AccountServiceImpl implements IAccountService {
                         accountRequestDTO.getAccountType().toString() + " account");
             }
 
-            if (accountRequestDTO.getAccountHolders().size() > 1 || accountRequestDTO.getAuthorizedSigners().size() > 1 ){
+            if (accountRequestDTO.getAccountHolders().size() > 0 || accountRequestDTO.getAuthorizedSigners().size() > 0 ){
                 throw new BusinessRuleException("A personal account shouldn't have account holder or aothorized signers");
             }
 
         }
         else {
-            if ("SAVINGS".equals(accountRequestDTO.getAccountType()) || "FIXED_TERM".equals(accountRequestDTO.getAccountType())) {
+            if ("SAVINGS".equals(accountRequestDTO.getAccountType().getValue()) || "FIXED_TERM".equals(accountRequestDTO.getAccountType().getValue())) {
                 throw new BusinessRuleException("Business customer can't have SAVINGS or FIXED_TERM accounts");
             }
 
@@ -194,7 +194,7 @@ public class AccountServiceImpl implements IAccountService {
                 account = setupFixedTermAccount(account);
                 break;
             default:
-                throw new IllegalArgumentException("Tipo de cuenta no soportado: " + account.getAccountType().getValue());
+                throw new BusinessRuleException("Tipo de cuenta no soportado: " + account.getAccountType().getValue());
         }
 
         // Valores comunes para todos los tipos de cuenta
@@ -247,7 +247,7 @@ public class AccountServiceImpl implements IAccountService {
         account.setMaintenanceFee(0.0);
         account.setMonthlyMovementLimit(0);
         account.setBalance(0.0);
-        if (account.getWithdrawalDay() != null)  account.setWithdrawalDay(5);
+        if (account.getWithdrawalDay() == null)  account.setWithdrawalDay(5);
         return account;
     }
 

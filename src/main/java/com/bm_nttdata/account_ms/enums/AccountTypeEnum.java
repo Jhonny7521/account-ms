@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum AccountTypeEnum {
     SAVINGS("SAVINGS"),
-    CHECKING("CHEKING"),
+    CHECKING("CHECKING"),
     FIXED_TERM("FIXED_TERM");
 
     public final String value;
