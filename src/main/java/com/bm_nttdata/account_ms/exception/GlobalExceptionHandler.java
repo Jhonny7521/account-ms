@@ -22,6 +22,11 @@ public class GlobalExceptionHandler {
         return createErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), "BUSINESS_RULE_VIOLATION");
     }
 
+    @ExceptionHandler(ServiceException.class)
+    public ResponseEntity<Map<String, Object>> handleServiceException(ServiceException ex) {
+        return createErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), "SERVICE_EXCEPTION");
+    }
+
     private ResponseEntity<Map<String, Object>> createErrorResponse(
             HttpStatus status, String message, String code) {
         Map<String, Object> body = new HashMap<>();

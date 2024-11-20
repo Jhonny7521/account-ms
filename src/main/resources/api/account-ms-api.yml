@@ -8,26 +8,6 @@ servers:
     description: Local development server
 paths:
   /accounts:
-    post:
-      tags:
-        - Account
-      summary: Create a new account
-      operationId: createAccount
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AccountRequest'
-      responses:
-        '201':
-          description: Account created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AccountResponse'
-        '400':
-          description: Invalid request
     get:
       tags:
         - Account
@@ -38,6 +18,11 @@ paths:
           in: query
           schema:
             type: string
+        - name: accountType
+          in: query
+          schema:
+            type: string
+            enum: [SAVINGS, CHECKING, FIXED_TERM]
       responses:
         '200':
           description: List of accounts
@@ -46,7 +31,28 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/AccountResponse'
+                  $ref: '#/components/schemas/AccountResponseDTO'
+    post:
+      tags:
+        - Account
+      summary: Create a new account
+      operationId: createAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountRequestDTO'
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponseDTO'
+        '400':
+          description: Invalid request
+
   /accounts/{id}:
     get:
       tags:
@@ -65,7 +71,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccountResponse'
+                $ref: '#/components/schemas/AccountResponseDTO'
     put:
       tags:
         - Account
@@ -82,14 +88,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AccountRequest'
+              $ref: '#/components/schemas/AccountRequestDTO'
       responses:
         '200':
           description: Account updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccountResponse'
+                $ref: '#/components/schemas/AccountResponseDTO'
         '400':
           description: Invalid request
     delete:
@@ -127,10 +133,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BalanceResponse'
+                $ref: '#/components/schemas/BalanceResponseDTO'
 components:
   schemas:
-    AccountRequest:
+    AccountRequestDTO:
       type: object
       required:
         - customerId
@@ -139,67 +145,160 @@ components:
       properties:
         customerId:
           type: string
+          description: Identificador de cliente
         accountType:
           type: string
           enum: [SAVINGS, CHECKING, FIXED_TERM]
+          description: Tipo de cuenta bancaria
         currency:
           type: string
+          description: Tipo de moneda
         initialBalance:
           type: number
           format: double
+          description: Saldo inicial
         maintenanceFee:
           type: number
           format: double
-        maxMonthlyMovements:
+          description: Comision por mantenimiento
+        monthlyMovementLimit:
           type: integer
+          description: Numero maximo de transacciones mensuales
         withdrawalDate:
-          type: string
-          format: date
-    AccountResponse:
+          type: integer
+          minimum: 1
+          maximum: 31
+          description: Dia del mes permitido para transacciones
+        accountHolders:
+          type: array
+          description: Lista de titulares de la cuenta (obligatorio al menos uno)
+          items:
+            $ref: '#/components/schemas/AccountHolderDTO'
+        authorizedSigners:
+          type: array
+          description: Lista de firmantes autorizados (opcional)
+          items:
+            $ref: '#/components/schemas/AuthorizedSignerDTO'
+    AccountResponseDTO:
       type: object
       properties:
         id:
           type: string
+          description: Identificador de cuenta bancaria
         customerId:
           type: string
+          description: Identificador de cliente
         accountType:
           type: string
           enum: [SAVINGS, CHECKING, FIXED_TERM]
+          description: Tipo de cuenta bancaria
         accountNumber:
           type: string
+          description: Numero de cuenta bancaria
         currency:
           type: string
+          description: Tipo de moneda
         balance:
           type: number
+          description: Saldo de la cuenta bancaria
         maintenanceFee:
           type: number
-        maxMonthlyMovements:
+          description: Comision por mantenimiento
+        monthlyMovementLimit:
           type: integer
+          description: Numero maximo de transacciones mensuales
         currentMonthMovements:
           type: integer
+          description: Numero de transacciones realizadas
         withdrawalDate:
           type: string
           format: date
+          description: Dia del mes permitido para transacciones
         status:
           type: string
           enum: [ACTIVE, INACTIVE, BLOCKED]
+          description: Estado de la cuanta bancaria
+        accountHolders:
+          type: array
+          description: Lista de titulares de la cuenta (obligatorio al menos uno)
+          items:
+            $ref: '#/components/schemas/AccountHolderDTO'
+        authorizedSigners:
+          type: array
+          description: Lista de firmantes autorizados (opcional)
+          items:
+            $ref: '#/components/schemas/AuthorizedSignerDTO'
         createdAt:
           type: string
           format: date-time
+          description: Fecha de creación de la cuanta bancaria
         updatedAt:
           type: string
           format: date-time
-    BalanceResponse:
+          description: Fecha de actualización de la cuanta bancaria
+
+    AccountHolderDTO:
+      type: object
+      required:
+        - documentNumber
+        - holderType
+        - signatureType
+      properties:
+        documentNumber:
+          type: string
+          description: Número de documento del titular
+        name:
+          type: string
+          description: Nombre completo del titular
+        holderType:
+          type: string
+          enum: [PRIMARY, SECONDARY]
+          description: Tipo de titular (PRIMARY para titular principal, SECONDARY para cotitulares)
+        signatureType:
+          type: string
+          enum: [INDIVIDUAL, JOINT]
+          description: Tipo de firma requerida para operaciones
+
+    AuthorizedSignerDTO:
+      type: object
+      required:
+        - documentNumber
+        - signatureType
+        - transactionLimit
+      properties:
+        documentNumber:
+          type: string
+          description: Número de documento del firmante
+        name:
+          type: string
+          description: Nombre completo del firmante
+        position:
+          type: string
+          description: Cargo en la empresa (opcional)
+        signatureType:
+          type: string
+          enum: [INDIVIDUAL, JOINT]
+          description: Tipo de firma requerida para operaciones
+        transactionLimit:
+          type: number
+          description: Límite máximo por transacción (opcional)
+
+    BalanceResponseDTO:
       type: object
       properties:
         accountId:
           type: string
+          description: Identificador de cuenta bancaria
         balance:
           type: number
+          description: Saldo de la cuenta bancaria
         availableBalance:
           type: number
+          description: Saldo disponible de la cuenta bancaria
         currency:
           type: string
+          description: Tipo de moneda
         lastUpdateDate:
           type: string
           format: date-time
+          description: Fecha de ultima actualización de la cuanta bancaria
