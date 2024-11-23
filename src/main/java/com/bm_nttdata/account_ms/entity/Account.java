@@ -10,10 +10,12 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Clase que representa la entidad de BD Account
+ */
 @Data
 @Builder
 @NoArgsConstructor
@@ -29,7 +31,7 @@ public class Account {
     private String currency;
     private Double balance;
     private Double maintenanceFee;
-    private Integer maxMonthlyMovements;
+    private Integer monthlyMovementLimit;
     private Integer currentMonthMovements;
     private Integer withdrawalDay;
     private List<AccountHolder> accountHolders;

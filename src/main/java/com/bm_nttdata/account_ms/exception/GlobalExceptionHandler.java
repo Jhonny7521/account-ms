@@ -27,6 +27,11 @@ public class GlobalExceptionHandler {
         return createErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), "SERVICE_EXCEPTION");
     }
 
+    @ExceptionHandler(ApiInvalidRequestException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidRequestException(ApiInvalidRequestException ex) {
+        return createErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), "BAD_REQUEST");
+    }
+
     private ResponseEntity<Map<String, Object>> createErrorResponse(
             HttpStatus status, String message, String code) {
         Map<String, Object> body = new HashMap<>();
