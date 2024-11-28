@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -29,7 +30,7 @@ public class Account {
     private AccountTypeEnum accountType;
     private String accountNumber;
     private String currency;
-    private Double balance;
+    private BigDecimal balance;
     private Double maintenanceFee;
     private Integer monthlyMovementLimit;
     private Integer currentMonthMovements;

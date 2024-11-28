@@ -1,10 +1,11 @@
 package com.bm_nttdata.account_ms.service.impl;
 
+import com.bm_nttdata.account_ms.DTO.OperationResponseDTO;
 import com.bm_nttdata.account_ms.entity.Account;
 import com.bm_nttdata.account_ms.exception.*;
 import com.bm_nttdata.account_ms.mapper.AccountMapper;
-import com.bm_nttdata.account_ms.model.AccountRequestDTO;
-import com.bm_nttdata.account_ms.model.AccountResponseDTO;
+import com.bm_nttdata.account_ms.model.*;
+//import com.bm_nttdata.account_ms.model.FeeResponseDTO;
 import com.bm_nttdata.account_ms.repository.AccountRepository;
 import com.bm_nttdata.account_ms.util.AccountNumberGenerator;
 import com.bm_nttdata.account_ms.DTO.CustomerDTO;
@@ -15,6 +16,7 @@ import com.bm_nttdata.account_ms.exception.BusinessRuleException;
 import com.bm_nttdata.account_ms.mapper.AccountMapper;
 import com.bm_nttdata.account_ms.repository.AccountRepository;
 import com.bm_nttdata.account_ms.service.IAccountService;
+import com.bm_nttdata.account_ms.util.Constants;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.mapstruct.factory.Mappers;
@@ -22,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -145,6 +148,134 @@ public class AccountServiceImpl implements IAccountService {
     }
 
     /**
+     * Verifica Si la cuenta supera sus movimientos mensuales, para aplicar cargo de comision
+     * @param id
+     * @param transactionFeeRequestDTO
+     * @return
+     */
+    @Override
+    public TransactionFeeResponseDTO checkTransactionFee(String id, TransactionFeeRequestDTO transactionFeeRequestDTO) {
+
+        Account account = getAccountById(id);
+        TransactionFeeResponseDTO transactionFeeResponseDTO = new TransactionFeeResponseDTO();
+
+        transactionFeeResponseDTO.setFeeAmount(BigDecimal.ZERO);
+        transactionFeeResponseDTO.setSubjectToFee(Boolean.FALSE);
+
+        if ((transactionFeeRequestDTO.getTransactionType().equals(TransactionFeeRequestDTO.TransactionTypeEnum.DEPOSIT) ||
+            transactionFeeRequestDTO.getTransactionType().equals(TransactionFeeRequestDTO.TransactionTypeEnum.WITHDRAWAL)) &&
+                (account.getMonthlyMovementLimit() > account.getCurrentMonthMovements())){
+
+            transactionFeeResponseDTO.setFeeAmount(BigDecimal.valueOf(Constants.AMOUNT_TRANSACTION_FEE));
+            transactionFeeResponseDTO.setSubjectToFee(Boolean.TRUE);
+        }
+
+        return transactionFeeResponseDTO;
+    }
+
+    /**
+     * Realiza un deposito verificando si se realiza el pago correspondiente de la comision por superar limite de
+     * transacciones mensuales
+     * @param id
+     * @param transactionRequestDTO
+     * @return
+     */
+    @Override
+    public ApiResponseDTO makeDepositAccount(String id, TransactionRequestDTO transactionRequestDTO) {
+
+        BigDecimal totalDeposit;
+        ApiResponseDTO apiResponseDTO = new ApiResponseDTO();
+
+        try {
+            Account account = getAccountById(id);
+
+            TransactionFeeRequestDTO transactionFeeRequestDTO = new TransactionFeeRequestDTO();
+            transactionFeeRequestDTO.setTransactionType(TransactionFeeRequestDTO.TransactionTypeEnum.DEPOSIT);
+            transactionFeeRequestDTO.setTransactionMade(transactionRequestDTO.getTransactionMade());
+            TransactionFeeResponseDTO transactionFeeResponseDTO = checkTransactionFee(id, transactionFeeRequestDTO);
+
+            totalDeposit = transactionRequestDTO.getTransactionAmount();
+
+            if (transactionFeeResponseDTO.getSubjectToFee()){
+
+                if (!transactionRequestDTO.getFeeAmount().equals(transactionFeeResponseDTO.getFeeAmount())){
+                    log.error("Incorrect transaction fee amount");
+                    throw new BusinessRuleException("Incorrect transaction fee amount");
+                }
+            }
+
+            account.setBalance(account.getBalance().add(totalDeposit));
+            account.setCurrentMonthMovements(account.getCurrentMonthMovements() + 1);
+
+            accountRepository.save(account);
+
+            apiResponseDTO.setStatus("SUCCESS");
+            apiResponseDTO.setMessage("Deposit successful");
+
+            return apiResponseDTO;
+
+        } catch (Exception e){
+
+            apiResponseDTO.setStatus("FAILED");
+            apiResponseDTO.setMessage("Unprocessed deposit");
+            apiResponseDTO.setError("Error when making the deposit: " + e.getMessage());
+
+            return apiResponseDTO;
+        }
+    }
+
+    /**
+     * Realiza un retiro verificando si se realiza el pago correspondiente de la comision por superar limite de
+     * transacciones mensuales
+     * @param id
+     * @param transactionRequestDTO
+     * @return
+     */
+    @Override
+    public ApiResponseDTO makeWithdrawalAccount(String id, TransactionRequestDTO transactionRequestDTO) {
+
+        BigDecimal totalWithdrawal;
+        ApiResponseDTO apiResponseDTO = new ApiResponseDTO();
+
+        try {
+            Account account = getAccountById(id);
+
+            TransactionFeeRequestDTO transactionFeeRequestDTO = new TransactionFeeRequestDTO();
+            transactionFeeRequestDTO.setTransactionType(TransactionFeeRequestDTO.TransactionTypeEnum.DEPOSIT);
+            transactionFeeRequestDTO.setTransactionMade(transactionRequestDTO.getTransactionMade());
+            TransactionFeeResponseDTO transactionFeeResponseDTO = checkTransactionFee(id, transactionFeeRequestDTO);
+
+            totalWithdrawal = transactionRequestDTO.getTransactionAmount();
+
+            if (transactionFeeResponseDTO.getSubjectToFee()){
+
+                if (!transactionRequestDTO.getFeeAmount().equals(transactionFeeResponseDTO.getFeeAmount())){
+                    log.error("Incorrect transaction fee amount");
+                    throw new BusinessRuleException("Incorrect transaction fee amount");
+                }
+            }
+
+            account.setBalance(account.getBalance().subtract(totalWithdrawal));
+            account.setCurrentMonthMovements(account.getCurrentMonthMovements() + 1);
+
+            accountRepository.save(account);
+
+            apiResponseDTO.setStatus("SUCCESS");
+            apiResponseDTO.setMessage("Withdrawal successful");
+
+            return apiResponseDTO;
+
+        } catch (Exception e){
+
+            apiResponseDTO.setStatus("FAILED");
+            apiResponseDTO.setMessage("Withdrawal not processed");
+            apiResponseDTO.setError("Withdrawal error: " + e.getMessage());
+
+            return apiResponseDTO;
+        }
+    }
+
+    /**
      * Valida las reglas del negocio para creacion de cuenta bancaria en base al tipo de cliente
      * @param customerDTO
      * @param accountRequestDTO
@@ -171,9 +302,7 @@ public class AccountServiceImpl implements IAccountService {
             if (accountRequestDTO.getAccountHolders().size() == 0){
                 throw new BusinessRuleException("A business account must have at least one account holder");
             }
-
         }
-
     }
 
     /**
@@ -220,7 +349,7 @@ public class AccountServiceImpl implements IAccountService {
     private Account setupSavingsAccount(Account account) {
         account.setMaintenanceFee(0.0);
         account.setMonthlyMovementLimit(8);
-        account.setBalance(0.0);
+        account.setBalance(BigDecimal.ZERO);
         account.setWithdrawalDay(0);
         return account;
     }
@@ -232,8 +361,8 @@ public class AccountServiceImpl implements IAccountService {
      */
     private Account setupCheckingAccount(Account account) {
         if (account.getMaintenanceFee() == null) account.setMaintenanceFee(10.0);
-        account.setMonthlyMovementLimit(0);
-        account.setBalance(0.0);
+        account.setMonthlyMovementLimit(8);
+        account.setBalance(BigDecimal.ZERO);
         account.setWithdrawalDay(0);
         return account;
     }
@@ -245,8 +374,8 @@ public class AccountServiceImpl implements IAccountService {
      */
     private Account setupFixedTermAccount(Account account) {
         account.setMaintenanceFee(0.0);
-        account.setMonthlyMovementLimit(0);
-        account.setBalance(0.0);
+        account.setMonthlyMovementLimit(8);
+        account.setBalance(BigDecimal.ZERO);
         if (account.getWithdrawalDay() == null)  account.setWithdrawalDay(5);
         return account;
     }
@@ -256,7 +385,7 @@ public class AccountServiceImpl implements IAccountService {
      * @param account
      */
     private void validateAccountDeletion(Account account){
-        if (account.getBalance() > 0) {
+        if (account.getBalance().compareTo(BigDecimal.ZERO) > 0) {
             throw new BusinessRuleException("An account with a balance can't be deleted.");
         }
     }

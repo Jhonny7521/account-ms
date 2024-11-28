@@ -1,7 +1,9 @@
 package com.bm_nttdata.account_ms.service;
 
+import com.bm_nttdata.account_ms.DTO.OperationResponseDTO;
 import com.bm_nttdata.account_ms.entity.Account;
-import com.bm_nttdata.account_ms.model.AccountRequestDTO;
+import com.bm_nttdata.account_ms.model.*;
+//import com.bm_nttdata.account_ms.model.FeeResponseDTO;
 
 import java.util.List;
 
@@ -17,4 +19,9 @@ public interface IAccountService {
 
     void deleteAccount(String id);
 
+    TransactionFeeResponseDTO checkTransactionFee(String id, TransactionFeeRequestDTO transactionFeeRequestDTO);
+
+    ApiResponseDTO makeDepositAccount(String id, TransactionRequestDTO transactionRequestDTO);
+
+    ApiResponseDTO makeWithdrawalAccount(String id, TransactionRequestDTO transactionRequestDTO);
 }
