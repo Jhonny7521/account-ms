@@ -1,10 +1,9 @@
 package com.bm_nttdata.account_ms.api;
 
+import com.bm_nttdata.account_ms.DTO.OperationResponseDTO;
 import com.bm_nttdata.account_ms.entity.Account;
 import com.bm_nttdata.account_ms.mapper.AccountMapper;
-import com.bm_nttdata.account_ms.model.AccountRequestDTO;
-import com.bm_nttdata.account_ms.model.AccountResponseDTO;
-import com.bm_nttdata.account_ms.model.BalanceResponseDTO;
+import com.bm_nttdata.account_ms.model.*;
 import com.bm_nttdata.account_ms.service.impl.AccountServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.mapstruct.factory.Mappers;
@@ -67,6 +66,28 @@ public class AccountApiDelegateImpl implements AccountApiDelegate {
         log.info("Getting balance for account: {}", id);
         Account account = accountService.getAccountById(id);
         return ResponseEntity.ok(accountMapper.toBalanceResponse(account));
+    }
+
+    @Override
+    public ResponseEntity<TransactionFeeResponseDTO> checkTransactionFee(String id, TransactionFeeRequestDTO transactionFeeRequestDTO) {
+        log.info("Checking the account transaction fee: {}", id);
+        TransactionFeeResponseDTO responseDTO = accountService.checkTransactionFee(id, transactionFeeRequestDTO);
+        return ResponseEntity.ok(responseDTO);
+    }
+
+    @Override
+    public ResponseEntity<ApiResponseDTO> depositToAccount(String id, TransactionRequestDTO transactionRequestDTO) {
+
+        log.info("Making deposit to bank account: {}", id);
+        ApiResponseDTO responseDTO = accountService.makeDepositAccount(id, transactionRequestDTO);
+        return ResponseEntity.ok(responseDTO);
+    }
+
+    @Override
+    public ResponseEntity<ApiResponseDTO> withdrawalToAccount(String id, TransactionRequestDTO transactionRequestDTO) {
+        log.info("Withdrawal from bank account: {}", id);
+        ApiResponseDTO responseDTO = accountService.makeWithdrawalAccount(id, transactionRequestDTO);
+        return ResponseEntity.ok(responseDTO);
     }
 
 }
