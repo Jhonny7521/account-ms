@@ -3,6 +3,9 @@ package com.bm_nttdata.account_ms.entity;
 import com.bm_nttdata.account_ms.enums.AccountTypeEnum;
 import com.bm_nttdata.account_ms.model.holder.AccountHolder;
 import com.bm_nttdata.account_ms.model.signer.AuthorizedSigner;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,12 +13,8 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
-
 /**
- * Clase que representa la entidad de BD Account
+ * Clase que representa la entidad de BD Account.
  */
 @Data
 @Builder
