@@ -19,9 +19,9 @@ public interface IAccountService {
 
     void deleteAccount(String id);
 
-    TransactionFeeResponseDTO checkTransactionFee(String id, TransactionFeeRequestDTO transactionFeeRequestDTO);
+    TransactionFeeResponseDTO checkTransactionFee(TransactionFeeRequestDTO transactionFeeRequestDTO);
 
-    ApiResponseDTO makeDepositAccount(String id, TransactionRequestDTO transactionRequestDTO);
+    ApiResponseDTO makeDepositAccount(DepositRequestDTO depositRequestDTO);
 
-    ApiResponseDTO makeWithdrawalAccount(String id, TransactionRequestDTO transactionRequestDTO);
+    ApiResponseDTO makeWithdrawalAccount(WithdrawalRequestDTO withdrawalRequestDTO);
 }

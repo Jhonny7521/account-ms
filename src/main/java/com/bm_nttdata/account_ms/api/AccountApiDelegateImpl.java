@@ -69,24 +69,24 @@ public class AccountApiDelegateImpl implements AccountApiDelegate {
     }
 
     @Override
-    public ResponseEntity<TransactionFeeResponseDTO> checkTransactionFee(String id, TransactionFeeRequestDTO transactionFeeRequestDTO) {
-        log.info("Checking the account transaction fee: {}", id);
-        TransactionFeeResponseDTO responseDTO = accountService.checkTransactionFee(id, transactionFeeRequestDTO);
+    public ResponseEntity<TransactionFeeResponseDTO> checkTransactionFee(TransactionFeeRequestDTO transactionFeeRequestDTO) {
+        log.info("Checking the account transaction fee: {}", transactionFeeRequestDTO.getAccountId());
+        TransactionFeeResponseDTO responseDTO = accountService.checkTransactionFee(transactionFeeRequestDTO);
         return ResponseEntity.ok(responseDTO);
     }
 
     @Override
-    public ResponseEntity<ApiResponseDTO> depositToAccount(String id, TransactionRequestDTO transactionRequestDTO) {
+    public ResponseEntity<ApiResponseDTO> depositToAccount(DepositRequestDTO depositRequestDTO) {
 
-        log.info("Making deposit to bank account: {}", id);
-        ApiResponseDTO responseDTO = accountService.makeDepositAccount(id, transactionRequestDTO);
+        log.info("Making deposit to bank account: {}", depositRequestDTO.getTargetAccountId());
+        ApiResponseDTO responseDTO = accountService.makeDepositAccount(depositRequestDTO);
         return ResponseEntity.ok(responseDTO);
     }
 
     @Override
-    public ResponseEntity<ApiResponseDTO> withdrawalToAccount(String id, TransactionRequestDTO transactionRequestDTO) {
-        log.info("Withdrawal from bank account: {}", id);
-        ApiResponseDTO responseDTO = accountService.makeWithdrawalAccount(id, transactionRequestDTO);
+    public ResponseEntity<ApiResponseDTO> withdrawalToAccount(WithdrawalRequestDTO withdrawalRequestDTO) {
+        log.info("Withdrawal from bank account: {}", withdrawalRequestDTO.getSourceAccountId());
+        ApiResponseDTO responseDTO = accountService.makeWithdrawalAccount(withdrawalRequestDTO);
         return ResponseEntity.ok(responseDTO);
     }
 
