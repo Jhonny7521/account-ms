@@ -1,6 +1,7 @@
 package com.bm_nttdata.account_ms.repository;
 
 import com.bm_nttdata.account_ms.entity.Account;
+import com.bm_nttdata.account_ms.enums.AccountTypeEnum;
 import java.util.List;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
@@ -44,4 +45,12 @@ public interface AccountRepository extends MongoRepository<Account, String> {
      * @return Número de cuentas que coinciden con los criterios
      */
     long countByCustomerIdAndAccountType(String customerId, String accountType);
+
+    /**
+     * Busca todas las cuentas bancarias por el tipo de cuenta.
+     *
+     * @param accountType Tipo de cuenta bancaria a buscar
+     * @return Lista de cuentas bancarias que coinciden con los criterios
+     */
+    List<Account> findAllByAccountType(AccountTypeEnum accountType);
 }

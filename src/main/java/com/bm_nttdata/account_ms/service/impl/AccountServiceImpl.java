@@ -1,8 +1,10 @@
 package com.bm_nttdata.account_ms.service.impl;
 
+import com.bm_nttdata.account_ms.client.CreditClient;
 import com.bm_nttdata.account_ms.client.CustomerClient;
 import com.bm_nttdata.account_ms.dto.CustomerDto;
 import com.bm_nttdata.account_ms.entity.Account;
+import com.bm_nttdata.account_ms.enums.AccountTypeEnum;
 import com.bm_nttdata.account_ms.exception.AccountNotFoundException;
 import com.bm_nttdata.account_ms.exception.ApiInvalidRequestException;
 import com.bm_nttdata.account_ms.exception.BusinessRuleException;
@@ -51,6 +53,9 @@ public class AccountServiceImpl implements AccountService {
     private AccountNumberGenerator accountNumberGenerator;
     @Autowired
     private CustomerClient customerClient;
+
+    @Autowired
+    private CreditClient creditClient;
 
     /**
      * Retorna todas las cuentas bancarias de un cliente.
@@ -334,30 +339,65 @@ public class AccountServiceImpl implements AccountService {
      */
     private void validateAccountCreation(CustomerDto customer, AccountRequestDTO accountRequest) {
 
-        if (customer.getCustomerType().equals("PERSONAL")) {
-            long count = accountRepository.countByCustomerIdAndAccountType(
-                    customer.getId(), accountRequest.getAccountType().toString());
-            if (count > 0) {
-                throw new BusinessRuleException("Customer already has a "
+        String customerType = customer.getCustomerType();
+
+        switch (customerType) {
+
+            case "PERSONAL" -> {
+                long count = accountRepository.countByCustomerIdAndAccountType(
+                        customer.getId(), accountRequest.getAccountType().toString());
+                if (count > 0) {
+                    throw new BusinessRuleException("Customer already has a "
                         + accountRequest.getAccountType().toString() + " account");
-            }
+                }
 
-            if (accountRequest.getAccountHolders().size() > 0
-                    || accountRequest.getAuthorizedSigners().size() > 0) {
-                throw new BusinessRuleException(
-                        "A personal account shouldn't have account holder or aothorized signers");
+                if (accountRequest.getAccountHolders().size() > 0
+                        || accountRequest.getAuthorizedSigners().size() > 0) {
+                    throw new BusinessRuleException(
+                        "A personal account shouldn't have account holder or authorized signers");
+                }
             }
-        } else {
-            if ("SAVINGS".equals(accountRequest.getAccountType().getValue())
-                    || "FIXED_TERM".equals(accountRequest.getAccountType().getValue())) {
-                throw new BusinessRuleException(
+            case "BUSINESS" -> {
+                if ("SAVINGS".equals(accountRequest.getAccountType().getValue())
+                        || "FIXED_TERM".equals(accountRequest.getAccountType().getValue())) {
+                    throw new BusinessRuleException(
                         "Business customer can't have SAVINGS or FIXED_TERM accounts");
-            }
+                }
 
-            if (accountRequest.getAccountHolders().size() == 0) {
-                throw new BusinessRuleException(
+                if (accountRequest.getAccountHolders().size() == 0) {
+                    throw new BusinessRuleException(
                         "A business account must have at least one account holder");
+                }
             }
+            default -> throw new BusinessRuleException("Customer type not supported: "
+                    + customerType);
+        }
+
+        String accountType = accountRequest.getAccountType().getValue();
+
+        List<String> restrictedAccountTypes = List.of(
+                AccountTypeEnum.SAVINGS_VIP.getValue(),
+                AccountTypeEnum.CHECKING_PYME.getValue()
+        );
+
+        boolean requiresCreditCard = restrictedAccountTypes.contains(accountType)
+                && creditClient.getAllCreditCards(customer.getId()).isEmpty();
+
+        if (requiresCreditCard) {
+            throw new BusinessRuleException(
+                    "Customer must have a credit card to apply for this product"
+            );
+        }
+
+        boolean requiresMinimumBalance = restrictedAccountTypes.contains(accountType)
+                && accountRequest.getInitialBalance()
+                .compareTo(Constants.VIP_MINIMUM_OPENING_BALANCE) < 0;
+
+        if (requiresMinimumBalance) {
+            throw new BusinessRuleException(
+                    "Opening balance less than the required amount of "
+                    + Constants.VIP_MINIMUM_OPENING_BALANCE
+            );
         }
     }
 
@@ -370,16 +410,12 @@ public class AccountServiceImpl implements AccountService {
     private Account initializeAccountByType(Account account) {
 
         switch (account.getAccountType().getValue()) {
-            case "SAVINGS":
-                account = setupSavingsAccount(account);
-                break;
-            case "CHECKING":
-                account = setupCheckingAccount(account);
-                break;
-            case "FIXED_TERM":
-                account = setupFixedTermAccount(account);
-                break;
-            default:
+            case "SAVINGS" -> account = setupSavingsAccount(account);
+            case "CHECKING" -> account = setupCheckingAccount(account);
+            case "FIXED_TERM" -> account = setupFixedTermAccount(account);
+            case "SAVINGS_VIP" -> account = setupSavingsVipAccount(account);
+            case "CHECKING_MYPE" -> account = setupCheckingMypeAccount(account);
+            default ->
                 throw new BusinessRuleException("Tipo de cuenta no soportado: "
                         + account.getAccountType().getValue());
         }
@@ -408,7 +444,7 @@ public class AccountServiceImpl implements AccountService {
     private Account setupSavingsAccount(Account account) {
         account.setMaintenanceFee(0.0);
         account.setMonthlyMovementLimit(8);
-        account.setBalance(BigDecimal.ZERO);
+        //account.setBalance(BigDecimal.ZERO);
         account.setWithdrawalDay(0);
         return account;
     }
@@ -424,7 +460,7 @@ public class AccountServiceImpl implements AccountService {
             account.setMaintenanceFee(10.0);
         }
         account.setMonthlyMovementLimit(8);
-        account.setBalance(BigDecimal.ZERO);
+        //account.setBalance(BigDecimal.ZERO);
         account.setWithdrawalDay(0);
         return account;
     }
@@ -438,10 +474,40 @@ public class AccountServiceImpl implements AccountService {
     private Account setupFixedTermAccount(Account account) {
         account.setMaintenanceFee(0.0);
         account.setMonthlyMovementLimit(8);
-        account.setBalance(BigDecimal.ZERO);
+        //account.setBalance(BigDecimal.ZERO);
         if (account.getWithdrawalDay() == null) {
             account.setWithdrawalDay(5);
         }
+        return account;
+    }
+
+    /**
+     * Establece los atributos especificos para una cuenta de ahorro VIP.
+     *
+     * @param account la cuenta a configurar
+     * @return la cuenta con atributos especificos para una de ahorro VIP
+     */
+    private Account setupSavingsVipAccount(Account account) {
+        account.setMaintenanceFee(0.0);
+        account.setMonthlyMovementLimit(8);
+        //account.setBalance(BigDecimal.ZERO);
+        account.setWithdrawalDay(0);
+        return account;
+    }
+
+    /**
+     * Establece los atributos especificos para una cuenta corriente PYME.
+     *
+     * @param account la cuenta a configurar
+     * @return la cuenta con atributos especificos para una cuenta corriente PYME
+     */
+    private Account setupCheckingMypeAccount(Account account) {
+        if (account.getMaintenanceFee() == null) {
+            account.setMaintenanceFee(0.0);
+        }
+        account.setMonthlyMovementLimit(8);
+        //account.setBalance(BigDecimal.ZERO);
+        account.setWithdrawalDay(0);
         return account;
     }
 

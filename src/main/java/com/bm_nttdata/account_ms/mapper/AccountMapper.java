@@ -10,6 +10,7 @@ import com.bm_nttdata.account_ms.model.AuthorizedSignerDTO;
 import com.bm_nttdata.account_ms.model.BalanceResponseDTO;
 import com.bm_nttdata.account_ms.model.holder.AccountHolder;
 import com.bm_nttdata.account_ms.model.signer.AuthorizedSigner;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -17,6 +18,7 @@ import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.Named;
 
 /**
  * Mapper para la conversión entre entidades y DTOs relacionados con cuentas bancarias.
@@ -183,6 +185,9 @@ public interface AccountMapper {
      * @param accountRequest DTO con los datos de la solicitud de cuenta
      * @return Entidad Account mapeada
      */
+    @Mapping(target = "balance",
+            source = "initialBalance",
+            qualifiedByName = "mapInitialBalance")
     Account accountRequestDtoToEntityAccount(AccountRequestDTO accountRequest);
 
     /**
@@ -283,4 +288,18 @@ public interface AccountMapper {
     @Mapping(target = "availableBalance", source = "balance")
     @Mapping(target = "lastUpdateDate", source = "updatedAt")
     BalanceResponseDTO toBalanceResponse(Account account);
+
+    /**
+     * Convierte un valor de saldo inicial a un valor seguro para su uso.
+     *
+     * @param initialBalance el saldo inicial que puede ser nulo.
+     * @return el saldo inicial si no es nulo, o cero en caso contrario.
+     */
+    @Named("mapInitialBalance")
+    default BigDecimal mapInitialBalance(BigDecimal initialBalance) {
+        if (initialBalance == null) {
+            return BigDecimal.ZERO;
+        }
+        return initialBalance;
+    }
 }

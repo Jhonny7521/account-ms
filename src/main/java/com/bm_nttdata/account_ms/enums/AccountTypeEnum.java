@@ -10,7 +10,10 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum AccountTypeEnum {
     SAVINGS("SAVINGS"),
     CHECKING("CHECKING"),
-    FIXED_TERM("FIXED_TERM");
+    FIXED_TERM("FIXED_TERM"),
+    SAVINGS_VIP("SAVINGS_VIP"),
+    CHECKING_PYME("CHECKING_PYME"),
+    ;
 
     public final String value;
 

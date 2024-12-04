@@ -229,18 +229,16 @@ components:
           description: Identificador de cliente
         accountType:
           type: string
-          enum: [SAVINGS, CHECKING, FIXED_TERM]
+          enum: [SAVINGS, CHECKING, FIXED_TERM, SAVINGS_VIP, CHECKING_PYME]
           description: Tipo de cuenta bancaria
         currency:
           type: string
           description: Tipo de moneda
         initialBalance:
           type: number
-          format: double
           description: Saldo inicial
         maintenanceFee:
           type: number
-          format: double
           description: Comision por mantenimiento
         monthlyMovementLimit:
           type: integer
@@ -272,7 +270,7 @@ components:
           description: Identificador de cliente
         accountType:
           type: string
-          enum: [SAVINGS, CHECKING, FIXED_TERM]
+          enum: [SAVINGS, CHECKING, FIXED_TERM, SAVINGS_VIP, CHECKING_PYME]
           description: Tipo de cuenta bancaria
         accountNumber:
           type: string

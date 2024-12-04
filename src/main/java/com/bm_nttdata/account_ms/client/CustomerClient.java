@@ -1,6 +1,7 @@
 package com.bm_nttdata.account_ms.client;
 
 import com.bm_nttdata.account_ms.dto.CustomerDto;
+import feign.FeignException;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
