@@ -21,6 +21,6 @@ public interface CustomerClient {
      * @return DTO con la información del cliente
      * @throws FeignException cuando ocurre un error en la comunicación con el servicio
      */
-    @GetMapping("/{id}")
+    @GetMapping("/customers/{id}")
     CustomerDto getCustomerById(@PathVariable("id") String id);
 }

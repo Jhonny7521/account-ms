@@ -42,20 +42,31 @@ public class AccountScheduler {
     @Scheduled(cron = "0 0 0 * * *")
     public void recordDailyBalances() {
 
+        log.info("starts daily balance recording process");
+
         try {
             LocalDate currentDay = LocalDate.now();
             List<Account> accounts =
-                    accountRepository.findAllByAccountType(AccountTypeEnum.SAVINGS_VIP);
+                    accountRepository.findAllByAccountTypeIn(
+                            List.of(AccountTypeEnum.SAVINGS,
+                                    AccountTypeEnum.CHECKING,
+                                    AccountTypeEnum.FIXED_TERM,
+                                    AccountTypeEnum.SAVINGS_VIP,
+                                    AccountTypeEnum.CHECKING_PYME));
 
             for (Account account : accounts) {
                 try {
                     recordDailyBalance(account, currentDay);
 
                 } catch (Exception e) {
-                    log.error("Error processing the daily balance for the account {}: {}",
-                            account.getId(), e.getMessage());
+                    log.error(
+                            "Error processing the daily balance for the account {} - {}: {}",
+                            account.getId(), account.getAccountType().getValue(), e.getMessage());
                 }
             }
+
+            log.info("Daily balance recording process completed");
+
         } catch (Exception e) {
             log.error("Error when processing daily balances: {}", e.getMessage());
         }
