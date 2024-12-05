@@ -4,14 +4,17 @@ import com.bm_nttdata.account_ms.entity.Account;
 import com.bm_nttdata.account_ms.entity.DailyBalance;
 import com.bm_nttdata.account_ms.enums.AccountStatusEnum;
 import com.bm_nttdata.account_ms.enums.AccountTypeEnum;
-import com.bm_nttdata.account_ms.exception.ServiceException;
 import com.bm_nttdata.account_ms.repository.AccountRepository;
 import com.bm_nttdata.account_ms.repository.DailyBalanceRepository;
 import com.bm_nttdata.account_ms.util.Constants;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.YearMonth;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -162,8 +165,16 @@ public class AccountScheduler {
             LocalDate startDate = month.atDay(1);
             LocalDate endDate = month.atEndOfMonth();
 
+            // Convertir LocalDate a ZonedDateTime en UTC
+            ZonedDateTime startDateTime = startDate.atStartOfDay(ZoneOffset.UTC);
+            ZonedDateTime endDateTime = endDate.atTime(LocalTime.MAX).atZone(ZoneOffset.UTC);
+
+            // Convertir a Date para la consulta
+            Date startDateMongo = Date.from(startDateTime.toInstant());
+            Date endDateMongo = Date.from(endDateTime.toInstant());
+
             List<DailyBalance> dailyBalances = dailyBalanceRepository
-                    .findByAccountIdAndDateBetween(accountId, startDate, endDate);
+                    .findByAccountIdAndDateBetween(accountId, startDateMongo, endDateMongo);
 
             if (dailyBalances.isEmpty()) {
                 return BigDecimal.ZERO;

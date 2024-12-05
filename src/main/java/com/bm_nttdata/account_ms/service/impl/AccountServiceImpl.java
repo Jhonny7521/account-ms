@@ -4,10 +4,8 @@ import com.bm_nttdata.account_ms.client.CreditClient;
 import com.bm_nttdata.account_ms.client.CustomerClient;
 import com.bm_nttdata.account_ms.dto.CustomerDto;
 import com.bm_nttdata.account_ms.entity.Account;
-import com.bm_nttdata.account_ms.entity.BankFee;
 import com.bm_nttdata.account_ms.entity.DailyBalance;
 import com.bm_nttdata.account_ms.enums.AccountTypeEnum;
-import com.bm_nttdata.account_ms.enums.FeeTypeEnum;
 import com.bm_nttdata.account_ms.exception.AccountNotFoundException;
 import com.bm_nttdata.account_ms.exception.ApiInvalidRequestException;
 import com.bm_nttdata.account_ms.exception.BusinessRuleException;
@@ -20,7 +18,6 @@ import com.bm_nttdata.account_ms.model.TransactionFeeRequestDTO;
 import com.bm_nttdata.account_ms.model.TransactionFeeResponseDTO;
 import com.bm_nttdata.account_ms.model.WithdrawalRequestDTO;
 import com.bm_nttdata.account_ms.repository.AccountRepository;
-import com.bm_nttdata.account_ms.repository.BankFeeRepository;
 import com.bm_nttdata.account_ms.repository.DailyBalanceRepository;
 import com.bm_nttdata.account_ms.service.AccountService;
 import com.bm_nttdata.account_ms.util.AccountNumberGenerator;
@@ -29,7 +26,11 @@ import feign.FeignException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.YearMonth;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
@@ -184,12 +185,31 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public List<DailyBalance> getDailyBalances(String accountId, LocalDate searchMonth) {
 
-        YearMonth month = YearMonth.from(searchMonth);
-        LocalDate startDate = month.atDay(1);
-        LocalDate endDate = month.atEndOfMonth();
-        List<DailyBalance> dailyBalanceList =
-                dailyBalanceRepository.findByAccountIdAndDateBetween(accountId, startDate, endDate);
-        return dailyBalanceList;
+        try {
+            YearMonth month = YearMonth.from(searchMonth);
+            LocalDate startDate = month.atDay(1);
+            LocalDate endDate = month.atEndOfMonth();
+
+            // Convertir LocalDate a ZonedDateTime en UTC
+            ZonedDateTime startDateTime = startDate.atStartOfDay(ZoneOffset.UTC);
+            ZonedDateTime endDateTime = endDate.atTime(LocalTime.MAX).atZone(ZoneOffset.UTC);
+
+            // Convertir a Date para la consulta
+            Date startDateMongo = Date.from(startDateTime.toInstant());
+            Date endDateMongo = Date.from(endDateTime.toInstant());
+
+            List<DailyBalance> dailyBalanceList =
+                    dailyBalanceRepository.findByAccountIdAndDateBetween(
+                            accountId,
+                            startDateMongo,
+                            endDateMongo);
+            log.info("Balances found: " + dailyBalanceList);
+            return dailyBalanceList;
+        } catch (Exception e) {
+            log.error("Unexpected error while getting daily balances: {}", e.getMessage());
+            throw new ServiceException(
+                    "Unexpected error while getting daily balances" + e.getMessage());
+        }
     }
 
     /**

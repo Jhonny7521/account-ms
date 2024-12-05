@@ -1,7 +1,7 @@
 package com.bm_nttdata.account_ms.repository;
 
 import com.bm_nttdata.account_ms.entity.DailyBalance;
-import java.time.LocalDate;
+import java.util.Date;
 import java.util.List;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
@@ -20,5 +20,5 @@ public interface DailyBalanceRepository extends MongoRepository<DailyBalance, St
      * @return Lista de saldos diarios del cliente
      */
     List<DailyBalance> findByAccountIdAndDateBetween(
-            String accountId, LocalDate startDate, LocalDate endDate);
+            String accountId, Date startDate, Date endDate);
 }

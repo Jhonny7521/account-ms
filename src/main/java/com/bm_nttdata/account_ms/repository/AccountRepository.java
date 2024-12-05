@@ -54,5 +54,11 @@ public interface AccountRepository extends MongoRepository<Account, String> {
      */
     List<Account> findAllByAccountType(AccountTypeEnum accountType);
 
+    /**
+     * Busca todas las cuentas bancarias en base a una lista de tipos de cuenta.
+     *
+     * @param accountTypeEnumList Lista de tipos de cuenta bancaria a buscar
+     * @return Lista de cuentas bancarias que coinciden con los criterios
+     */
     List<Account> findAllByAccountTypeIn(List<AccountTypeEnum> accountTypeEnumList);
 }
