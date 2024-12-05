@@ -135,6 +135,35 @@ paths:
               schema:
                 $ref: '#/components/schemas/BalanceResponseDTO'
 
+  /accounts/{id}/daily-balance:
+    get:
+      tags:
+        - Account
+      summary: Get all daily balances
+      operationId: getAllDailyBalances
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: searchMonth
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2024-03"
+      responses:
+        '200':
+          description: List of daily balances
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DailyBalanceDto'
+
   /accounts/fee-check:
     post:
       tags:
@@ -474,3 +503,20 @@ components:
         description:
           type: string
           description: Descripcion de transferencia
+
+    DailyBalanceDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Identificador de saldo diario
+        accountId:
+          type: string
+          description: Identificador de cuenta bancaria
+        balanceDate:
+          type: string
+          format: date
+          description: fecha de balance
+        balanceAmount:
+          type: number
+          description: Monto de saldo

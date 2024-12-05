@@ -4,7 +4,10 @@ import com.bm_nttdata.account_ms.client.CreditClient;
 import com.bm_nttdata.account_ms.client.CustomerClient;
 import com.bm_nttdata.account_ms.dto.CustomerDto;
 import com.bm_nttdata.account_ms.entity.Account;
+import com.bm_nttdata.account_ms.entity.BankFee;
+import com.bm_nttdata.account_ms.entity.DailyBalance;
 import com.bm_nttdata.account_ms.enums.AccountTypeEnum;
+import com.bm_nttdata.account_ms.enums.FeeTypeEnum;
 import com.bm_nttdata.account_ms.exception.AccountNotFoundException;
 import com.bm_nttdata.account_ms.exception.ApiInvalidRequestException;
 import com.bm_nttdata.account_ms.exception.BusinessRuleException;
@@ -17,6 +20,8 @@ import com.bm_nttdata.account_ms.model.TransactionFeeRequestDTO;
 import com.bm_nttdata.account_ms.model.TransactionFeeResponseDTO;
 import com.bm_nttdata.account_ms.model.WithdrawalRequestDTO;
 import com.bm_nttdata.account_ms.repository.AccountRepository;
+import com.bm_nttdata.account_ms.repository.BankFeeRepository;
+import com.bm_nttdata.account_ms.repository.DailyBalanceRepository;
 import com.bm_nttdata.account_ms.service.AccountService;
 import com.bm_nttdata.account_ms.util.AccountNumberGenerator;
 import com.bm_nttdata.account_ms.util.Constants;
@@ -24,6 +29,7 @@ import feign.FeignException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +52,9 @@ public class AccountServiceImpl implements AccountService {
 
     @Autowired
     private AccountRepository accountRepository;
+
+    @Autowired
+    private DailyBalanceRepository dailyBalanceRepository;
 
     private AccountMapper accountMapper = Mappers.getMapper(AccountMapper.class);
 
@@ -164,6 +173,23 @@ public class AccountServiceImpl implements AccountService {
             throw new ServiceException("Error deleting account: " + e.getMessage());
         }
 
+    }
+
+    /**
+     * Retorna todas los saldos diarios de una cuenta bancaria.
+     *
+     * @param accountId Identificador único de la cuenta
+     * @return Lista de saldos diarios que coinciden con los criterios de búsqueda
+     */
+    @Override
+    public List<DailyBalance> getDailyBalances(String accountId, LocalDate searchMonth) {
+
+        YearMonth month = YearMonth.from(searchMonth);
+        LocalDate startDate = month.atDay(1);
+        LocalDate endDate = month.atEndOfMonth();
+        List<DailyBalance> dailyBalanceList =
+                dailyBalanceRepository.findByAccountIdAndDateBetween(accountId, startDate, endDate);
+        return dailyBalanceList;
     }
 
     /**

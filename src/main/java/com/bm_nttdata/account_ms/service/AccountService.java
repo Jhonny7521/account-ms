@@ -1,12 +1,14 @@
 package com.bm_nttdata.account_ms.service;
 
 import com.bm_nttdata.account_ms.entity.Account;
+import com.bm_nttdata.account_ms.entity.DailyBalance;
 import com.bm_nttdata.account_ms.model.AccountRequestDTO;
 import com.bm_nttdata.account_ms.model.ApiResponseDTO;
 import com.bm_nttdata.account_ms.model.DepositRequestDTO;
 import com.bm_nttdata.account_ms.model.TransactionFeeRequestDTO;
 import com.bm_nttdata.account_ms.model.TransactionFeeResponseDTO;
 import com.bm_nttdata.account_ms.model.WithdrawalRequestDTO;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -57,6 +59,14 @@ public interface AccountService {
      * @param id Identificador único de la cuenta a eliminar
      */
     void deleteAccount(String id);
+
+    /**
+     * Retorna todas los saldos diarios de una cuenta bancaria.
+     *
+     * @param accountId Identificador único de la cuenta
+     * @return Lista de saldos diarios que coinciden con los criterios de búsqueda
+     */
+    List<DailyBalance> getDailyBalances(String accountId, LocalDate searchMonth);
 
     /**
      * Verifica Si la cuenta supera sus movimientos mensuales, para aplicar cargo de comision.

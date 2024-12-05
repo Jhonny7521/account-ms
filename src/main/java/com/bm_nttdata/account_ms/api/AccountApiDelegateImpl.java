@@ -1,16 +1,20 @@
 package com.bm_nttdata.account_ms.api;
 
 import com.bm_nttdata.account_ms.entity.Account;
+import com.bm_nttdata.account_ms.entity.DailyBalance;
 import com.bm_nttdata.account_ms.mapper.AccountMapper;
+import com.bm_nttdata.account_ms.mapper.DailyBalanceMapper;
 import com.bm_nttdata.account_ms.model.AccountRequestDTO;
 import com.bm_nttdata.account_ms.model.AccountResponseDTO;
 import com.bm_nttdata.account_ms.model.ApiResponseDTO;
 import com.bm_nttdata.account_ms.model.BalanceResponseDTO;
+import com.bm_nttdata.account_ms.model.DailyBalanceDto;
 import com.bm_nttdata.account_ms.model.DepositRequestDTO;
 import com.bm_nttdata.account_ms.model.TransactionFeeRequestDTO;
 import com.bm_nttdata.account_ms.model.TransactionFeeResponseDTO;
 import com.bm_nttdata.account_ms.model.WithdrawalRequestDTO;
 import com.bm_nttdata.account_ms.service.impl.AccountServiceImpl;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +36,9 @@ public class AccountApiDelegateImpl implements AccountApiDelegate {
     @Autowired
     private AccountServiceImpl accountService;
     private final AccountMapper accountMapper = Mappers.getMapper(AccountMapper.class);
+
+    private final DailyBalanceMapper dailyBalanceMapper =
+            Mappers.getMapper(DailyBalanceMapper.class);
 
     @Override
     public ResponseEntity<List<AccountResponseDTO>> getAllAccounts(
@@ -79,6 +86,18 @@ public class AccountApiDelegateImpl implements AccountApiDelegate {
         log.info("Getting balance for account: {}", id);
         Account account = accountService.getAccountById(id);
         return ResponseEntity.ok(accountMapper.toBalanceResponse(account));
+    }
+
+    @Override
+    public ResponseEntity<List<DailyBalanceDto>> getAllDailyBalances(
+            String id, LocalDate searchMonth) {
+        log.info("Getting average balance for account: {}", id);
+        List<DailyBalanceDto> dailyBalances = accountService.getDailyBalances(id, searchMonth)
+                .stream()
+                .map(dailyBalanceMapper::dailyBalanceToDto)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(dailyBalances);
     }
 
     @Override
