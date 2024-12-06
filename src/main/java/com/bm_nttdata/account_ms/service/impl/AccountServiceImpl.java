@@ -4,8 +4,11 @@ import com.bm_nttdata.account_ms.client.CreditClient;
 import com.bm_nttdata.account_ms.client.CustomerClient;
 import com.bm_nttdata.account_ms.dto.CustomerDto;
 import com.bm_nttdata.account_ms.entity.Account;
+import com.bm_nttdata.account_ms.entity.BankFee;
 import com.bm_nttdata.account_ms.entity.DailyBalance;
 import com.bm_nttdata.account_ms.enums.AccountTypeEnum;
+import com.bm_nttdata.account_ms.enums.FeeTypeEnum;
+import com.bm_nttdata.account_ms.enums.OperationTypeEnum;
 import com.bm_nttdata.account_ms.exception.AccountNotFoundException;
 import com.bm_nttdata.account_ms.exception.ApiInvalidRequestException;
 import com.bm_nttdata.account_ms.exception.BusinessRuleException;
@@ -18,6 +21,7 @@ import com.bm_nttdata.account_ms.model.TransactionFeeRequestDTO;
 import com.bm_nttdata.account_ms.model.TransactionFeeResponseDTO;
 import com.bm_nttdata.account_ms.model.WithdrawalRequestDTO;
 import com.bm_nttdata.account_ms.repository.AccountRepository;
+import com.bm_nttdata.account_ms.repository.BankFeeRepository;
 import com.bm_nttdata.account_ms.repository.DailyBalanceRepository;
 import com.bm_nttdata.account_ms.service.AccountService;
 import com.bm_nttdata.account_ms.util.AccountNumberGenerator;
@@ -55,12 +59,16 @@ public class AccountServiceImpl implements AccountService {
     private AccountRepository accountRepository;
 
     @Autowired
+    private BankFeeRepository bankFeeRepository;
+
+    @Autowired
     private DailyBalanceRepository dailyBalanceRepository;
 
     private AccountMapper accountMapper = Mappers.getMapper(AccountMapper.class);
 
     @Autowired
     private AccountNumberGenerator accountNumberGenerator;
+
     @Autowired
     private CustomerClient customerClient;
 
@@ -281,6 +289,12 @@ public class AccountServiceImpl implements AccountService {
                     log.error("Incorrect transaction fee amount");
                     throw new BusinessRuleException("Incorrect transaction fee amount");
                 }
+                createBankFee(
+                        account.getId(),
+                        account.getAccountType(),
+                        OperationTypeEnum.DEPOSIT,
+                        FeeTypeEnum.TRANSACTION_EXCESS,
+                        depositRequest.getFeeAmount());
             }
 
             account.setBalance(account.getBalance().add(depositRequest.getAmount()));
@@ -346,6 +360,12 @@ public class AccountServiceImpl implements AccountService {
                     log.error("Incorrect transaction fee amount");
                     throw new BusinessRuleException("Incorrect transaction fee amount");
                 }
+                createBankFee(
+                        account.getId(),
+                        account.getAccountType(),
+                        OperationTypeEnum.WITHDRAWAL,
+                        FeeTypeEnum.TRANSACTION_EXCESS,
+                        withdrawalRequest.getFeeAmount());
             }
 
             if (withdrawalRequest.getAmount().compareTo(account.getBalance()) > 0) {
@@ -578,5 +598,38 @@ public class AccountServiceImpl implements AccountService {
         }
 
         return errorMessage;
+    }
+
+    /**
+     * Registra una comision bancaria.
+     *
+     * @param accountId identificador de cuenta bancaria
+     * @param accountType descripcion de tipo de cuenta bancaria
+     * @param operationType descripcion de tipo de operacion por la que se registra la comision
+     * @param feeType tipo de comision
+     * @param feeAmount monto de comision
+     */
+    private void createBankFee(
+            String accountId, AccountTypeEnum accountType, OperationTypeEnum operationType,
+            FeeTypeEnum feeType, BigDecimal feeAmount) {
+
+        try {
+
+            BankFee bankFee = BankFee.builder()
+                    .accountId(accountId)
+                    .accountType(accountType)
+                    .operationType(operationType)
+                    .date(LocalDate.now())
+                    .feeType(feeType)
+                    .feeAmount(feeAmount)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+
+            bankFeeRepository.save(bankFee);
+        } catch (Exception e) {
+            log.error("Unexpected error while saving bankFee: {}", e.getMessage());
+            throw new ServiceException("Unexpected error creating bankFee" + e.getMessage());
+        }
     }
 }

@@ -2,7 +2,6 @@ package com.bm_nttdata.account_ms.entity;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
