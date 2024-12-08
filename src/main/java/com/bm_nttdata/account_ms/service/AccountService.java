@@ -1,6 +1,7 @@
 package com.bm_nttdata.account_ms.service;
 
 import com.bm_nttdata.account_ms.entity.Account;
+import com.bm_nttdata.account_ms.entity.BankFee;
 import com.bm_nttdata.account_ms.entity.DailyBalance;
 import com.bm_nttdata.account_ms.model.AccountRequestDTO;
 import com.bm_nttdata.account_ms.model.ApiResponseDTO;
@@ -94,4 +95,23 @@ public interface AccountService {
      * @return Objeto DTO con la respuesta del resultado de la operación
      */
     ApiResponseDTO makeWithdrawalAccount(WithdrawalRequestDTO withdrawalRequest);
+
+    /**
+     * Retorna todas las cuentas bancarias segun un estatus indicado.
+     *
+     * @param status estatus de cuentas a buscar
+     * @return Lista de cuentas bancarias que coinciden con los criterios de búsqueda
+     */
+    List<Account> getAccountsByStatus(String status);
+
+    /**
+     * Retorna todas las comisiones cobradas a una cuenta bancaria en un pediodo
+     * de tiempo establecido.
+     *
+     * @param id Identificador único de la cuenta
+     * @param startDate fecha inicial del período de consulta
+     * @param endDate fecha final del período de consulta
+     * @return Lista de saldos diarios que coinciden con los criterios de búsqueda
+     */
+    List<BankFee> getBankFees(String id, LocalDate startDate, LocalDate endDate);
 }

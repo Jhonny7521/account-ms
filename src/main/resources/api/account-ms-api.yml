@@ -164,6 +164,62 @@ paths:
                 items:
                   $ref: '#/components/schemas/DailyBalanceDto'
 
+  /accounts/{id}/fees:
+    get:
+      tags:
+        - Account
+      summary: Get all bank fees
+      operationId: getAllBankFees
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of daily balances
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BankFeeDto'
+
+  /accounts/by-status:
+    get:
+      tags:
+        - Account
+      summary: Get accounts by status
+      operationId: getAccountBystatus
+      parameters:
+        - name: status
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountResponseDTO'
+
   /accounts/fee-check:
     post:
       tags:
@@ -520,3 +576,22 @@ components:
         balanceAmount:
           type: number
           description: Monto de saldo
+
+    BankFeeDto:
+      type: object
+      description: Detalle de una comisión específica
+      properties:
+        operationType:
+          type: string
+          description: Tipo de operacion a la que se aplico comision
+        date:
+          type: string
+          format: date
+          description: Fecha en que se cobró la comisión
+        feeType:
+          type: string
+          enum: [MAINTENANCE_FEE, TRANSACTION_EXCESS, LATE_PAYMENT]
+          description: Tipo de comisión (mantenimiento, exceso de transacciones, pago tardío)
+        feeAmount:
+          type: number
+          description: Monto de la comisión cobrada

@@ -398,6 +398,56 @@ public class AccountServiceImpl implements AccountService {
     }
 
     /**
+     * Retorna todas las cuentas bancarias segun un estatus indicado.
+     *
+     * @param status estatus de cuentas a buscar
+     * @return Lista de cuentas bancarias que coinciden con los criterios de búsqueda
+     */
+    @Override
+    public List<Account> getAccountsByStatus(String status) {
+        List<Account> accountList = accountRepository.findByStatus(status);
+        return accountList;
+    }
+
+    /**
+     * Retorna todas las comisiones cobradas a una cuenta bancaria en un pediodo
+     * de tiempo establecido.
+     *
+     * @param id Identificador único de la cuenta
+     * @param startDate fecha inicial del período de consulta
+     * @param endDate fecha final del período de consulta
+     * @return Lista de saldos diarios que coinciden con los criterios de búsqueda
+     */
+    public List<BankFee> getBankFees(String id, LocalDate startDate, LocalDate endDate) {
+
+        if (startDate.isAfter(endDate)) {
+            log.error("Start date cannot be later than the search end date.");
+            throw new ApiInvalidRequestException(
+                    "Start date cannot be later than the search end date: ");
+        }
+
+        try {
+            ZonedDateTime startDateTime = startDate.atStartOfDay(ZoneOffset.UTC);
+            ZonedDateTime endDateTime = endDate.atTime(LocalTime.MAX).atZone(ZoneOffset.UTC);
+
+            Date startDateMongo = Date.from(startDateTime.toInstant());
+            Date endDateMongo = Date.from(endDateTime.toInstant());
+
+            List<BankFee> bankFeeList =
+                    bankFeeRepository.findByAccountIdAndDateBetween(
+                            id,
+                            startDateMongo,
+                            endDateMongo);
+            log.info("Bank Fees found: " + bankFeeList);
+            return bankFeeList;
+        } catch (Exception e) {
+            log.error("Unexpected error while getting bank fees: {}", e.getMessage());
+            throw new ServiceException(
+                    "Unexpected error while getting bank fees" + e.getMessage());
+        }
+    }
+
+    /**
      * Valida las reglas del negocio para creacion de cuenta bancaria en base al tipo de cliente.
      *
      * @param customer cliente a validar

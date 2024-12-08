@@ -1,18 +1,20 @@
 package com.bm_nttdata.account_ms.api;
 
 import com.bm_nttdata.account_ms.entity.Account;
-import com.bm_nttdata.account_ms.entity.DailyBalance;
 import com.bm_nttdata.account_ms.mapper.AccountMapper;
+import com.bm_nttdata.account_ms.mapper.BankFeeMapper;
 import com.bm_nttdata.account_ms.mapper.DailyBalanceMapper;
 import com.bm_nttdata.account_ms.model.AccountRequestDTO;
 import com.bm_nttdata.account_ms.model.AccountResponseDTO;
 import com.bm_nttdata.account_ms.model.ApiResponseDTO;
 import com.bm_nttdata.account_ms.model.BalanceResponseDTO;
+import com.bm_nttdata.account_ms.model.BankFeeDto;
 import com.bm_nttdata.account_ms.model.DailyBalanceDto;
 import com.bm_nttdata.account_ms.model.DepositRequestDTO;
 import com.bm_nttdata.account_ms.model.TransactionFeeRequestDTO;
 import com.bm_nttdata.account_ms.model.TransactionFeeResponseDTO;
 import com.bm_nttdata.account_ms.model.WithdrawalRequestDTO;
+import com.bm_nttdata.account_ms.service.AccountService;
 import com.bm_nttdata.account_ms.service.impl.AccountServiceImpl;
 import java.time.LocalDate;
 import java.util.List;
@@ -34,9 +36,10 @@ import org.springframework.stereotype.Component;
 public class AccountApiDelegateImpl implements AccountApiDelegate {
 
     @Autowired
-    private AccountServiceImpl accountService;
+    private AccountService accountService;
     private final AccountMapper accountMapper = Mappers.getMapper(AccountMapper.class);
 
+    private final BankFeeMapper bankFeeMapper = Mappers.getMapper(BankFeeMapper.class);
     private final DailyBalanceMapper dailyBalanceMapper =
             Mappers.getMapper(DailyBalanceMapper.class);
 
@@ -123,6 +126,27 @@ public class AccountApiDelegateImpl implements AccountApiDelegate {
         log.info("Withdrawal from bank account: {}", withdrawalRequest.getSourceAccountId());
         ApiResponseDTO responseDto = accountService.makeWithdrawalAccount(withdrawalRequest);
         return ResponseEntity.ok(responseDto);
+    }
+
+    @Override
+    public ResponseEntity<List<AccountResponseDTO>> getAccountBystatus(String status) {
+        log.info("Getting bank accounts with status: {}", status);
+        List<AccountResponseDTO> accountResponseList = accountService.getAccountsByStatus(status)
+                .stream()
+                .map(accountMapper::entityAccountToAccountResponseDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(accountResponseList);
+    }
+
+    @Override
+    public ResponseEntity<List<BankFeeDto>> getAllBankFees(
+            String id, LocalDate startDate, LocalDate endDate) {
+        log.info("Getting bank fees for account: {}", id);
+        List<BankFeeDto> bankFees = accountService.getBankFees(id, startDate, endDate)
+                .stream()
+                .map(bankFeeMapper::bankFeeEntityToDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(bankFees);
     }
 
 }

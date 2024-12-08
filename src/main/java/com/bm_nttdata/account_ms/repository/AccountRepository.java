@@ -29,13 +29,12 @@ public interface AccountRepository extends MongoRepository<Account, String> {
     List<Account> findByCustomerIdAndAccountType(String customerId, String accountType);
 
     /**
-     * Verifica si existe una cuenta bancaria para un cliente y tipo específico.
+     * Busca todas las cuentas bancarias según su estatus.
      *
-     * @param customerId Identificador único del cliente
-     * @param accountType Tipo de cuenta bancaria a verificar
-     * @return true si existe una cuenta con los criterios especificados, false en caso contrario
+     * @param status estatus a buscar
+     * @return Lista de cuentas bancarias que coinciden con los criterios
      */
-    boolean existsByCustomerIdAndAccountType(String customerId, String accountType);
+    List<Account> findByStatus(String status);
 
     /**
      * Cuenta el número de cuentas bancarias de un tipo específico que tiene un cliente.
