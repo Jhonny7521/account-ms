@@ -8,6 +8,7 @@ import com.bm_nttdata.account_ms.model.ApiResponseDTO;
 import com.bm_nttdata.account_ms.model.DepositRequestDTO;
 import com.bm_nttdata.account_ms.model.TransactionFeeRequestDTO;
 import com.bm_nttdata.account_ms.model.TransactionFeeResponseDTO;
+import com.bm_nttdata.account_ms.model.TransferRequestDTO;
 import com.bm_nttdata.account_ms.model.WithdrawalRequestDTO;
 import java.time.LocalDate;
 import java.util.List;
@@ -95,6 +96,16 @@ public interface AccountService {
      * @return Objeto DTO con la respuesta del resultado de la operación
      */
     ApiResponseDTO makeWithdrawalAccount(WithdrawalRequestDTO withdrawalRequest);
+
+    /**
+     * Procesa una transferencia bancaria.
+     * Valida la solicitud, verifica si la cuenta origen contiene saldo
+     * disponible para realizar la transferancia.
+     *
+     * @param transferRequest DTO con los datos necesarios para realizar la transferencia
+     * @return Objeto DTO con la respuesta del resultado de la operación
+     */
+    ApiResponseDTO processBankTransfer(TransferRequestDTO transferRequest);
 
     /**
      * Retorna todas las cuentas bancarias segun un estatus indicado.

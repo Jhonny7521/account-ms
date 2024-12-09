@@ -13,9 +13,9 @@ import com.bm_nttdata.account_ms.model.DailyBalanceDto;
 import com.bm_nttdata.account_ms.model.DepositRequestDTO;
 import com.bm_nttdata.account_ms.model.TransactionFeeRequestDTO;
 import com.bm_nttdata.account_ms.model.TransactionFeeResponseDTO;
+import com.bm_nttdata.account_ms.model.TransferRequestDTO;
 import com.bm_nttdata.account_ms.model.WithdrawalRequestDTO;
 import com.bm_nttdata.account_ms.service.AccountService;
-import com.bm_nttdata.account_ms.service.impl.AccountServiceImpl;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -147,6 +147,15 @@ public class AccountApiDelegateImpl implements AccountApiDelegate {
                 .map(bankFeeMapper::bankFeeEntityToDto)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(bankFees);
+    }
+
+    @Override
+    public ResponseEntity<ApiResponseDTO> bankTransfer(TransferRequestDTO transferRequest) {
+        log.info("Transfer from account {} to account {}",
+                transferRequest.getSourceAccountId(),
+                transferRequest.getTargetAccountId());
+        ApiResponseDTO responseDto = accountService.processBankTransfer(transferRequest);
+        return ResponseEntity.ok(responseDto);
     }
 
 }

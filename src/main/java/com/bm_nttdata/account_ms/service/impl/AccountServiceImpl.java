@@ -19,6 +19,7 @@ import com.bm_nttdata.account_ms.model.ApiResponseDTO;
 import com.bm_nttdata.account_ms.model.DepositRequestDTO;
 import com.bm_nttdata.account_ms.model.TransactionFeeRequestDTO;
 import com.bm_nttdata.account_ms.model.TransactionFeeResponseDTO;
+import com.bm_nttdata.account_ms.model.TransferRequestDTO;
 import com.bm_nttdata.account_ms.model.WithdrawalRequestDTO;
 import com.bm_nttdata.account_ms.repository.AccountRepository;
 import com.bm_nttdata.account_ms.repository.BankFeeRepository;
@@ -339,7 +340,7 @@ public class AccountServiceImpl implements AccountService {
             if (errorFound != "") {
 
                 apiResponse.setStatus("FAILED");
-                apiResponse.setMessage("Unprocessed deposit");
+                apiResponse.setMessage("Unprocessed withdrawal");
                 apiResponse.setError(errorFound);
                 return apiResponse;
             }
@@ -392,6 +393,80 @@ public class AccountServiceImpl implements AccountService {
             apiResponse.setStatus("FAILED");
             apiResponse.setMessage("Withdrawal not processed");
             apiResponse.setError("Withdrawal error: " + e.getMessage());
+
+            return apiResponse;
+        }
+    }
+
+    /**
+     * Procesa una transferencia bancaria.
+     * Valida la solicitud, verifica si la cuenta origen contiene saldo
+     * disponible para realizar la transferancia.
+     *
+     * @param transferRequest DTO con los datos necesarios para realizar la transferencia
+     * @return Objeto DTO con la respuesta del resultado de la operación
+     */
+    @Override
+    public ApiResponseDTO processBankTransfer(TransferRequestDTO transferRequest) {
+
+        ApiResponseDTO apiResponse = new ApiResponseDTO();
+
+        try {
+            Account sourceAccount = getAccountById(transferRequest.getSourceAccountId());
+            Account targetAccount = getAccountById(transferRequest.getTargetAccountId());
+            String errorFound = validateTransaction(
+                    sourceAccount.getAccountType().getValue(), sourceAccount.getWithdrawalDay());
+
+            if (!errorFound.equals("")) {
+
+                apiResponse.setStatus("FAILED");
+                apiResponse.setMessage("Unprocessed transfer");
+                apiResponse.setError("Source Account: " + errorFound);
+                return apiResponse;
+            }
+
+            errorFound = validateTransaction(
+                    targetAccount.getAccountType().getValue(), targetAccount.getWithdrawalDay());
+
+            if (!errorFound.equals("")) {
+
+                apiResponse.setStatus("FAILED");
+                apiResponse.setMessage("Unprocessed transfer");
+                apiResponse.setError("Target Account: " + errorFound);
+                return apiResponse;
+            }
+
+            if (transferRequest.getAmount().compareTo(sourceAccount.getBalance()) > 0) {
+                apiResponse.setStatus("FAILED");
+                apiResponse.setMessage("Transfer not processed");
+                apiResponse.setError("Insufficient balance for transfer");
+
+                return apiResponse;
+            }
+
+            sourceAccount.setBalance(
+                    sourceAccount.getBalance().subtract(transferRequest.getAmount()));
+            sourceAccount.setCurrentMonthMovements(sourceAccount.getCurrentMonthMovements() + 1);
+            sourceAccount.setUpdatedAt(LocalDateTime.now());
+
+            accountRepository.save(sourceAccount);
+
+            targetAccount.setBalance(targetAccount.getBalance().add(transferRequest.getAmount()));
+            targetAccount.setCurrentMonthMovements(targetAccount.getCurrentMonthMovements() + 1);
+            targetAccount.setUpdatedAt(LocalDateTime.now());
+
+            accountRepository.save(targetAccount);
+
+            apiResponse.setStatus("SUCCESS");
+            apiResponse.setMessage("Transfer successful");
+
+            return apiResponse;
+
+        } catch (Exception e) {
+
+            apiResponse.setStatus("FAILED");
+            apiResponse.setMessage("Transfer not processed");
+            apiResponse.setError("Transfer error: " + e.getMessage());
 
             return apiResponse;
         }
