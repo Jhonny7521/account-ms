@@ -16,12 +16,14 @@ import com.bm_nttdata.account_ms.model.TransactionFeeResponseDTO;
 import com.bm_nttdata.account_ms.model.TransferRequestDTO;
 import com.bm_nttdata.account_ms.model.WithdrawalRequestDTO;
 import com.bm_nttdata.account_ms.service.AccountService;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.mapstruct.factory.Mappers;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
@@ -63,6 +65,7 @@ public class AccountApiDelegateImpl implements AccountApiDelegate {
     }
 
     @Override
+    @CircuitBreaker(name = "allAccountsMethods", fallbackMethod = "createAccountFallback")
     public ResponseEntity<AccountResponseDTO> createAccount(AccountRequestDTO accountRequest) {
         log.info("Creating account for customer: {}", accountRequest.getCustomerId());
         Account account = accountService.createAccount(accountRequest);
@@ -158,4 +161,10 @@ public class AccountApiDelegateImpl implements AccountApiDelegate {
         return ResponseEntity.ok(responseDto);
     }
 
+    private ResponseEntity<AccountResponseDTO> createAccountFallback(
+            AccountRequestDTO accountRequest, Exception e) {
+        log.error("Fallback for create account: {}", e.getMessage());
+        return new ResponseEntity(
+                "We are experiencing some errors. Please try again later", HttpStatus.OK);
+    }
 }
