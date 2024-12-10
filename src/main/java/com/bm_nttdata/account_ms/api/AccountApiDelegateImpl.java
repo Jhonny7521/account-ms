@@ -65,7 +65,7 @@ public class AccountApiDelegateImpl implements AccountApiDelegate {
     }
 
     @Override
-    @CircuitBreaker(name = "allAccountsMethods", fallbackMethod = "createAccountFallback")
+    @CircuitBreaker(name = "createAccount", fallbackMethod = "createAccountFallback")
     public ResponseEntity<AccountResponseDTO> createAccount(AccountRequestDTO accountRequest) {
         log.info("Creating account for customer: {}", accountRequest.getCustomerId());
         Account account = accountService.createAccount(accountRequest);
