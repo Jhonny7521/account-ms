@@ -135,18 +135,97 @@ paths:
               schema:
                 $ref: '#/components/schemas/BalanceResponseDTO'
 
-  /accounts/{id}/fee-check:
-    post:
+  /accounts/{id}/daily-balance:
+    get:
       tags:
         - Account
-      summary: Transaction fee verification
-      operationId: checkTransactionFee
+      summary: Get all daily balances
+      operationId: getAllDailyBalances
       parameters:
         - name: id
           in: path
           required: true
           schema:
             type: string
+        - name: searchMonth
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2024-03"
+      responses:
+        '200':
+          description: List of daily balances
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DailyBalanceDto'
+
+  /accounts/{id}/fees:
+    get:
+      tags:
+        - Account
+      summary: Get all bank fees
+      operationId: getAllBankFees
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of daily balances
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BankFeeDto'
+
+  /accounts/by-status:
+    get:
+      tags:
+        - Account
+      summary: Get accounts by status
+      operationId: getAccountBystatus
+      parameters:
+        - name: status
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountResponseDTO'
+
+  /accounts/fee-check:
+    post:
+      tags:
+        - Account
+      summary: Transaction fee verification
+      operationId: checkTransactionFee
       requestBody:
         required: true
         content:
@@ -161,24 +240,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/TransactionFeeResponseDTO'
 
-  /accounts/{id}/deposit:
+  /accounts/deposit:
     post:
       tags:
         - Account
       summary: Deposit to a bank account
       operationId: depositToAccount
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TransactionRequestDTO'
+              $ref: '#/components/schemas/DepositRequestDTO'
       responses:
         '200':
           description: Results of the deposit to account
@@ -187,24 +260,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseDTO'
 
-  /accounts/{id}/withdraw:
+  /accounts/withdraw:
     post:
       tags:
         - Account
       summary: Bank account withdrawal
       operationId: withdrawalToAccount
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TransactionRequestDTO'
+              $ref: '#/components/schemas/WithdrawalRequestDTO'
       responses:
         '200':
           description: Account withdrawal results
@@ -213,24 +280,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseDTO'
 
-  /accounts/{id}/transfer:
+  /accounts/transfer:
     post:
       tags:
         - Account
       summary: Bank transfer
       operationId: bankTransfer
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TransactionRequestDTO'
+              $ref: '#/components/schemas/TransferRequestDTO'
       responses:
         '200':
           description: Results of the transfer
@@ -238,6 +299,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseDTO'
+
 components:
   schemas:
     AccountRequestDTO:
@@ -252,18 +314,16 @@ components:
           description: Identificador de cliente
         accountType:
           type: string
-          enum: [SAVINGS, CHECKING, FIXED_TERM]
+          enum: [SAVINGS, CHECKING, FIXED_TERM, SAVINGS_VIP, CHECKING_PYME]
           description: Tipo de cuenta bancaria
         currency:
           type: string
           description: Tipo de moneda
         initialBalance:
           type: number
-          format: double
           description: Saldo inicial
         maintenanceFee:
           type: number
-          format: double
           description: Comision por mantenimiento
         monthlyMovementLimit:
           type: integer
@@ -283,6 +343,7 @@ components:
           description: Lista de firmantes autorizados (opcional)
           items:
             $ref: '#/components/schemas/AuthorizedSignerDTO'
+
     AccountResponseDTO:
       type: object
       properties:
@@ -294,7 +355,7 @@ components:
           description: Identificador de cliente
         accountType:
           type: string
-          enum: [SAVINGS, CHECKING, FIXED_TERM]
+          enum: [SAVINGS, CHECKING, FIXED_TERM, SAVINGS_VIP, CHECKING_PYME]
           description: Tipo de cuenta bancaria
         accountNumber:
           type: string
@@ -407,32 +468,6 @@ components:
           format: date-time
           description: Fecha de ultima actualización de la cuanta bancaria
 
-    TransactionRequestDTO:
-      type: object
-      required:
-        - accountId
-        - transactionAmount
-        - transactionMade
-      properties:
-        accountId:
-          type: string
-          description: Identificador de producto de credito
-        transactionAmount:
-          type: number
-          description: Monto de transaccion
-        transactionMade:
-          type: integer
-          description: Transacciones realizadas en el mes
-        feeAmount:
-          type: number
-          description: Monto de comision
-        sourceAccountId:
-          type: string
-          description: Cuenta origen transaccion
-        targetAccountId:
-          type: string
-          description: Cuenta destino transaccion
-
     ApiResponseDTO:
       type: object
       properties:
@@ -447,18 +482,15 @@ components:
       type: object
       required:
         - transactionType
-        - transactionMade
+        - accountId
       properties:
         transactionType:
           type: string
           enum: [DEPOSIT, WITHDRAWAL, PAYMENT, CREDIT_CHARGE, TRANSFER]
-          description: tipo de transaccion
-        transactionMade:
-          type: integer
-          description: Transacciones realizadas en el mes
-        transactionAmount:
-          type: number
-          description: Monto de transaccion
+          description: Tipo de transaccion
+        accountId:
+          type: string
+          description: Identificador de cuenta bancaria
 
     TransactionFeeResponseDTO:
       type: object
@@ -469,3 +501,97 @@ components:
         feeAmount:
           type: number
           description: Monto de comision
+
+    DepositRequestDTO:
+      type: object
+      required:
+        - targetAccountId
+        - amount
+      properties:
+        targetAccountId:
+          type: string
+          description: Identificador de cuenta destino de deposito
+        amount:
+          type: number
+          description: Monto de deposito
+        feeAmount:
+          type: number
+          description: Monto de comision
+        description:
+          type: string
+          description: Descripcion de deposito
+
+    WithdrawalRequestDTO:
+      type: object
+      required:
+        - sourceAccountId
+        - amount
+      properties:
+        sourceAccountId:
+          type: string
+          description: Identificador de cuenta origen de retiro
+        amount:
+          type: number
+          description: Monto de retiro
+        feeAmount:
+          type: number
+          description: Monto de comision
+        description:
+          type: string
+          description: Descripcion de retiro
+
+    TransferRequestDTO:
+      type: object
+      required:
+        - sourceAccountId
+        - targetAccountId
+        - amount
+      properties:
+        sourceAccountId:
+          type: string
+          description: Identificador de cuenta origen
+        targetAccountId:
+          type: string
+          description: Identificador de cuenta destino
+        amount:
+          type: number
+          description: Monto de transferencia
+        description:
+          type: string
+          description: Descripcion de transferencia
+
+    DailyBalanceDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Identificador de saldo diario
+        accountId:
+          type: string
+          description: Identificador de cuenta bancaria
+        balanceDate:
+          type: string
+          format: date
+          description: fecha de balance
+        balanceAmount:
+          type: number
+          description: Monto de saldo
+
+    BankFeeDto:
+      type: object
+      description: Detalle de una comisión específica
+      properties:
+        operationType:
+          type: string
+          description: Tipo de operacion a la que se aplico comision
+        date:
+          type: string
+          format: date
+          description: Fecha en que se cobró la comisión
+        feeType:
+          type: string
+          enum: [MAINTENANCE_FEE, TRANSACTION_EXCESS, LATE_PAYMENT]
+          description: Tipo de comisión (mantenimiento, exceso de transacciones, pago tardío)
+        feeAmount:
+          type: number
+          description: Monto de la comisión cobrada
